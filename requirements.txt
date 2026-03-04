@@ -1,0 +1,17 @@
+
+# Core
+pandas==2.2.2
+numpy==1.26.4
+SQLAlchemy==2.0.25
+psycopg2-binary==2.9.9
+pyyaml==6.0.1
+
+# Modeling & viz
+scikit-learn==1.4.0
+matplotlib==3.8.2
+seaborn==0.13.2
+
+# Dev & tests
+pytest==8.0.0
+alembic==1.13.1
+openpyxl==3.1.2

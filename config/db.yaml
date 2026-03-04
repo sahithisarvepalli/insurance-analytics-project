@@ -1,0 +1,11 @@
+
+# Default DB configuration. In CI, values come from environment variables.
+# For local dev, either set env vars or edit these defaults.
+
+engine_url: ${DATABASE_URL}
+# Fallbacks only used by some scripts if engine_url is not set
+host: localhost
+port: 5432
+user: postgres
+password: postgres
+database: insurdb
