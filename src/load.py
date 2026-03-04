@@ -1,4 +1,3 @@
-
 import argparse
 import pandas as pd
 from sqlalchemy import text
@@ -8,12 +7,15 @@ from .utils import get_engine, logger
 def load_from_csv(members, providers, claims):
     eng = get_engine()
     with eng.begin() as con:
+        # ensure schema exists
         con.execute(text('CREATE SCHEMA IF NOT EXISTS insurance;'))
 
     def read_datesafe(path, date_cols):
+        # Load date columns as strings, then normalize
         df = pd.read_csv(path, dtype={col: 'string' for col in date_cols})
         for col in date_cols:
             s = df[col].fillna('')
+            # Detect 15–19 digit epoch ns strings
             mask_ns = s.str.match(r'^\d{15,19}$')
             if mask_ns.any():
                 s_ns = pd.to_datetime(s.where(mask_ns, None), errors='coerce', unit='ns')
@@ -23,19 +25,24 @@ def load_from_csv(members, providers, claims):
                 df[col] = pd.to_datetime(s, errors='coerce')
         return df
 
-    members_df = read_datesafe(members, ['dob','effective_date','termination_date'])
+    # Members
+    members_df = read_datesafe(members, ['dob', 'effective_date', 'termination_date'])
     members_df.to_sql('member', eng, schema='insurance', if_exists='append', index=False)
 
+    # Providers
     pd.read_csv(providers).to_sql('provider', eng, schema='insurance', if_exists='append', index=False)
 
+    # Claims
     claims_df = read_datesafe(claims, ['service_date'])
     claims_df.to_sql('claim', eng, schema='insurance', if_exists='append', index=False)
+
     logger.info('Done loading CSVs.')
 
 
 def main(args):
     if args.from_csv:
         load_from_csv(args.members, args.providers, args.claims)
+
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()

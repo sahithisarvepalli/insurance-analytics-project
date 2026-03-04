@@ -1,4 +1,3 @@
-
 import os
 import pandas as pd
 from .utils import get_engine, logger
@@ -31,30 +30,40 @@ def run_transform():
     df = pd.read_sql(q, eng, parse_dates=["service_date", "dob", "effective_date"])
     logger.info(f"Loaded {len(df):,} joined rows")
 
+    # Derivations
     today = pd.Timestamp("2024-12-31")
     df["age"] = (today - df["dob"]).dt.days // 365
     df["age_band"] = pd.cut(
-        df["age"], bins=[0,18,30,45,60,200], labels=["0-18","19-30","31-45","46-60","60+"]
+        df["age"],
+        bins=[0, 18, 30, 45, 60, 200],
+        labels=["0-18", "19-30", "31-45", "46-60", "60+"],
     )
 
+    # KPIs
     kpis = (
-        df.groupby(["age_band","member_region","in_network"], dropna=False)
-        .agg(claims=("claim_id","count"), paid_total=("paid_amount","sum"), paid_avg=("paid_amount","mean"))
+        df.groupby(["age_band", "member_region", "in_network"], dropna=False)
+        .agg(
+            claims=("claim_id", "count"),
+            paid_total=("paid_amount", "sum"),
+            paid_avg=("paid_amount", "mean"),
+        )
         .reset_index()
     )
 
+    # Monthly summary
     df["month"] = df["service_date"].dt.to_period("M").dt.to_timestamp()
     monthly = (
-        df.groupby(["month","member_region","in_network"]) 
-        .agg(claims=("claim_id","count"), paid_total=("paid_amount","sum"))
+        df.groupby(["month", "member_region", "in_network"])
+        .agg(claims=("claim_id", "count"), paid_total=("paid_amount", "sum"))
         .reset_index()
     )
 
-    os.makedirs('outputs', exist_ok=True)
-    kpis.to_csv('outputs/kpis.csv', index=False)
-    monthly.to_csv('outputs/monthly.csv', index=False)
-    logger.info('Wrote outputs/kpis.csv and outputs/monthly.csv')
+    # Persist
+    os.makedirs("outputs", exist_ok=True)
+    kpis.to_csv("outputs/kpis.csv", index=False)
+    monthly.to_csv("outputs/monthly.csv", index=False)
+    logger.info("Wrote outputs/kpis.csv and outputs/monthly.csv")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_transform()
