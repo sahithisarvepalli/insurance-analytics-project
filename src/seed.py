@@ -3,18 +3,12 @@ import argparse
 from .generate_synthetic import gen_members, gen_providers, gen_claims
 from .utils import get_engine, logger
 
-
 def main(rows_members, rows_providers, rows_claims):
     eng = get_engine()
-    m = gen_members(rows_members)
-    p = gen_providers(rows_providers)
-    c = gen_claims(rows_claims, rows_members, rows_providers)
-
-    m.to_sql('member', eng, schema='insurance', if_exists='append', index=False)
-    p.to_sql('provider', eng, schema='insurance', if_exists='append', index=False)
-    c.to_sql('claim', eng, schema='insurance', if_exists='append', index=False)
+    gen_members(rows_members).to_sql('member', eng, schema='insurance', if_exists='append', index=False)
+    gen_providers(rows_providers).to_sql('provider', eng, schema='insurance', if_exists='append', index=False)
+    gen_claims(rows_claims, rows_members, rows_providers).to_sql('claim', eng, schema='insurance', if_exists='append', index=False)
     logger.info('Seeded data directly into DB.')
-
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()

@@ -1,18 +1,13 @@
 
-import argparse
-import numpy as np
-import pandas as pd
-import os
-
+import argparse, os
+import numpy as np, pandas as pd
 
 def gen_members(n=50_000, seed=42):
     rng = np.random.default_rng(seed)
-    dob_year = rng.integers(1955, 2005, size=n)
-    dob_offset = rng.integers(0, 365, size=n)
-    dob = pd.to_datetime(dob_year, format='%Y') + pd.to_timedelta(dob_offset, unit='D')
-    eff = pd.to_datetime('2022-01-01') + pd.to_timedelta(rng.integers(0, 365, size=n), unit='D')
-    term = np.where(rng.random(n) < 0.1, eff + pd.to_timedelta(rng.integers(30, 730, size=n), unit='D'), pd.NaT)
-    df = pd.DataFrame({
+    dob = pd.to_datetime(rng.integers(1955,2005,size=n), format='%Y') + pd.to_timedelta(rng.integers(0,365,size=n), 'D')
+    eff = pd.to_datetime('2022-01-01') + pd.to_timedelta(rng.integers(0,365,size=n),'D')
+    term = np.where(rng.random(n)<0.1, eff + pd.to_timedelta(rng.integers(30,730,size=n),'D'), pd.NaT)
+    return pd.DataFrame({
         'person_id': rng.integers(10_000_000, 99_999_999, size=n),
         'dob': dob,
         'gender': rng.choice(list('MF'), size=n),
@@ -20,26 +15,22 @@ def gen_members(n=50_000, seed=42):
         'effective_date': eff,
         'termination_date': term
     })
-    return df
-
 
 def gen_providers(n=2_000, seed=43):
     rng = np.random.default_rng(seed)
-    df = pd.DataFrame({
+    return pd.DataFrame({
         'specialty': rng.choice(['PCP','Cardiology','Ortho','Derm','Oncology'], size=n, p=[0.45,0.15,0.18,0.12,0.10]),
         'in_network': rng.choice([True, False], size=n, p=[0.8,0.2]),
         'region': rng.choice(['East','West','North','South'], size=n)
     })
-    return df
-
 
 def gen_claims(n=300_000, members_n=50_000, providers_n=2_000, seed=44):
     rng = np.random.default_rng(seed)
-    service_dates = pd.to_datetime('2023-01-01') + pd.to_timedelta(rng.integers(0, 365, size=n), unit='D')
-    paid = np.round(rng.gamma(shape=2.0, scale=150.0, size=n), 2)
-    allowed = np.round(paid * rng.uniform(1.0, 1.3, size=n), 2)
-    billed = np.round(allowed * rng.uniform(1.0, 1.5, size=n), 2)
-    df = pd.DataFrame({
+    service_dates = pd.to_datetime('2023-01-01') + pd.to_timedelta(rng.integers(0,365,size=n), 'D')
+    paid = np.round(rng.gamma(2.0,150.0,size=n),2)
+    allowed = np.round(paid * rng.uniform(1.0,1.3,size=n),2)
+    billed = np.round(allowed * rng.uniform(1.0,1.5,size=n),2)
+    return pd.DataFrame({
         'member_id': rng.integers(1, members_n+1, size=n),
         'provider_id': rng.integers(1, providers_n+1, size=n),
         'service_date': service_dates,
@@ -50,20 +41,13 @@ def gen_claims(n=300_000, members_n=50_000, providers_n=2_000, seed=44):
         'paid_amount': paid,
         'place_of_service': rng.choice(['Office','Inpatient','Outpatient','ER'], size=n, p=[0.6,0.1,0.25,0.05])
     })
-    return df
-
 
 def main(rows_members, rows_providers, rows_claims, out_dir):
-    out_dir = out_dir or 'data'
     os.makedirs(out_dir, exist_ok=True)
-    m = gen_members(rows_members)
-    p = gen_providers(rows_providers)
-    c = gen_claims(rows_claims, rows_members, rows_providers)
-    m.to_csv(f'{out_dir}/sample_members.csv', index=False, date_format='%Y-%m-%d')
-    p.to_csv(f'{out_dir}/sample_providers.csv', index=False)
-    c.to_csv(f'{out_dir}/sample_claims.csv', index=False, date_format='%Y-%m-%d')
+    gen_members(rows_members).to_csv(f'{out_dir}/sample_members.csv', index=False, date_format='%Y-%m-%d')
+    gen_providers(rows_providers).to_csv(f'{out_dir}/sample_providers.csv', index=False)
+    gen_claims(rows_claims, rows_members, rows_providers).to_csv(f'{out_dir}/sample_claims.csv', index=False, date_format='%Y-%m-%d')
     print('Generated CSVs in', out_dir)
-
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
