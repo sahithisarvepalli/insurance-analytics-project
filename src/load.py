@@ -10,12 +10,32 @@ def load_from_csv(members, providers, claims):
     with eng.begin() as con:
         # ensure schema exists
         con.execute(text('CREATE SCHEMA IF NOT EXISTS insurance;'))
-    logger.info('Loading members...')
-    pd.read_csv(members, parse_dates=['dob','effective_date','termination_date']).to_sql('member', eng, schema='insurance', if_exists='append', index=False)
-    logger.info('Loading providers...')
+
+    def read_datesafe(path, date_cols):
+        # Load dates as strings, then normalize to datetimes
+        df = pd.read_csv(path, dtype={col: 'string' for col in date_cols})
+        for col in date_cols:
+            s = df[col].fillna('')
+            # 15–19 digit ns-epoch strings
+            mask_ns = s.str.match(r'^\d{15,19}$')
+            if mask_ns.any():
+                s_ns = pd.to_datetime(s.where(mask_ns, None), errors='coerce', unit='ns')
+                s_iso = pd.to_datetime(s.where(~mask_ns, None), errors='coerce', utc=False)
+                df[col] = s_ns.fillna(s_iso)
+            else:
+                df[col] = pd.to_datetime(s, errors='coerce', utc=False)
+        return df
+
+    # Members with robust date parse
+    members_df = read_datesafe(members, ['dob','effective_date','termination_date'])
+    members_df.to_sql('member', eng, schema='insurance', if_exists='append', index=False)
+
+    # Providers (no date columns)
     pd.read_csv(providers).to_sql('provider', eng, schema='insurance', if_exists='append', index=False)
-    logger.info('Loading claims...')
-    pd.read_csv(claims, parse_dates=['service_date']).to_sql('claim', eng, schema='insurance', if_exists='append', index=False)
+
+    # Claims (service_date)
+    claims_df = read_datesafe(claims, ['service_date'])
+    claims_df.to_sql('claim', eng, schema='insurance', if_exists='append', index=False)
     logger.info('Done loading CSVs.')
 
 

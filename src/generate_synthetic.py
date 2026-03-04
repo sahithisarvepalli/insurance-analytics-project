@@ -59,9 +59,9 @@ def main(rows_members, rows_providers, rows_claims, out_dir):
     m = gen_members(rows_members)
     p = gen_providers(rows_providers)
     c = gen_claims(rows_claims, rows_members, rows_providers)
-    m.to_csv(f'{out_dir}/sample_members.csv', index=False)
+    m.to_csv(f'{out_dir}/sample_members.csv', index=False, date_format='%Y-%m-%d')
     p.to_csv(f'{out_dir}/sample_providers.csv', index=False)
-    c.to_csv(f'{out_dir}/sample_claims.csv', index=False)
+    c.to_csv(f'{out_dir}/sample_claims.csv', index=False, date_format='%Y-%m-%d')
     print('Generated CSVs in', out_dir)
 
 
