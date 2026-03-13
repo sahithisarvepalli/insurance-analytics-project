@@ -37,8 +37,7 @@ def run_model():
     score = model.score(Xte, yte)
     os.makedirs('outputs', exist_ok=True)
     with open('outputs/model_metrics.txt','w') as fh:
-        fh.write(f'LogisticRegression accuracy: {score:.4f}
-')
+        fh.write(f'LogisticRegression accuracy: {score:.4f}\n')
     logger.info(f'Model accuracy: {score:.4f}')
 
 if __name__ == '__main__':
