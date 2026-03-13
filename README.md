@@ -39,7 +39,30 @@ insurance-analytics-python/
   └─ README.md
 ```
 
-## 🚀 Quick Start (Local)
+## � Dev Container (Recommended for Local Development)
+
+To replicate the GitHub Actions CI environment locally, use the provided dev container.
+
+1. **Open in Dev Container**:
+   - Ensure you have VS Code with the Dev Containers extension installed.
+   - Open the project in VS Code.
+   - When prompted, click "Reopen in Container" or use Command Palette: `Dev Containers: Reopen in Container`.
+
+2. **The dev container will automatically**:
+   - Set up Python 3.11 with PostgreSQL 15.
+   - Install dependencies from `requirements.txt`.
+   - Create the database `insurdb` and apply DDL.
+   - Generate and load synthetic data (2000 members, 300 providers, 5000 claims).
+
+3. **After opening, you can run additional commands**:
+   ```bash
+   python -m src.transform
+   python -m src.model
+   python -m src.report --out outputs/insurance_summary.xlsx
+   pytest -q
+   ```
+
+## 🚀 Quick Start (Local without Dev Container)
 1. **Create env & install deps**
    ```bash
    python -m venv .venv && source .venv/bin/activate
