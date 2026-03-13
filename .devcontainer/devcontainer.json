@@ -4,9 +4,9 @@
     "service": "app",
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "env": {
-        "DATABASE_URL": "postgresql+psycopg2://postgres:postgres@db:5432/insurdb"
+        "DATABASE_URL": "postgresql://postgres:postgres@db:5432/insurdb"
     },
-    "postCreateCommand": "pip install -r requirements.txt && until pg_isready -h db -p 5432 -U postgres; do echo 'Waiting for db...'; sleep 2; done && psql 'postgresql://postgres:postgres@db:5432/insurdb' -c \"CREATE SCHEMA IF NOT EXISTS insurance;\" && psql 'postgresql://postgres:postgres@db:5432/insurdb' -f sql/ddl_create_tables.sql && mkdir -p data && python -m src.generate_synthetic --rows-members 2000 --rows-providers 300 --rows-claims 5000 --out-dir data/ && python -m src.load --from-csv --members data/sample_members.csv --providers data/sample_providers.csv --claims data/sample_claims.csv",
+    "postCreateCommand": "bash -lc 'set -euo pipefail; pip install -r requirements.txt; until pg_isready -h db -p 5432 -U postgres; do echo \"Waiting for db...\"; sleep 2; done; psql \"postgresql://postgres:postgres@db:5432/insurdb\" -c \"CREATE SCHEMA IF NOT EXISTS insurance;\"; psql \"postgresql://postgres:postgres@db:5432/insurdb\" -f sql/ddl_create_tables.sql; mkdir -p data; python -m src.generate_synthetic --rows-members 2000 --rows-providers 300 --rows-claims 5000 --out-dir data/; python -m src.load --from-csv --members data/sample_members.csv --providers data/sample_providers.csv --claims data/sample_claims.csv'",
     "forwardPorts": [5432],
     "customizations": {
         "vscode": {
