@@ -1,5 +1,7 @@
 import os
+
 import pandas as pd
+
 from .utils import get_engine, logger
 
 
@@ -41,7 +43,7 @@ def run_transform():
 
     # KPIs
     kpis = (
-        df.groupby(["age_band", "member_region", "in_network"], dropna=False)
+        df.groupby(["age_band", "member_region", "in_network"], dropna=False, observed=True)
         .agg(
             claims=("claim_id", "count"),
             paid_total=("paid_amount", "sum"),
