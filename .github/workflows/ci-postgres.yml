@@ -53,7 +53,7 @@ jobs:
           vulture src || true
 
           # Import analysis
-          cohesion src
+          cohesion -d src
 
       - name: Static analysis report
         run: |
