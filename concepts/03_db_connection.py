@@ -17,22 +17,16 @@ def main():
 
     # Create a simple table if it doesn't exist
     with engine.begin() as conn:
-        conn.execute(
-            text("""
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
                 age INTEGER
             )
-        """)
-        )
+        """))
         # Insert sample data
-        conn.execute(
-            text("INSERT OR IGNORE INTO users (id, name, age) VALUES (1, 'Alice', 25)")
-        )
-        conn.execute(
-            text("INSERT OR IGNORE INTO users (id, name, age) VALUES (2, 'Bob', 30)")
-        )
+        conn.execute(text("INSERT OR IGNORE INTO users (id, name, age) VALUES (1, 'Alice', 25)"))
+        conn.execute(text("INSERT OR IGNORE INTO users (id, name, age) VALUES (2, 'Bob', 30)"))
 
     # Query data
     with engine.connect() as conn:
