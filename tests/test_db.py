@@ -5,7 +5,7 @@ from sqlalchemy import text
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))  # noqa: E402
 
-from src.utils import get_engine
+from src.utils import get_engine  # noqa
 
 
 def test_schema_tables_exist():
@@ -22,4 +22,4 @@ def test_schema_tables_exist():
             )
         )
         rows = list(res)
-        assert len(rows) >= 3, "Expected tables member, provider, claim in schema insurance."
+        assert len(rows) >= 3, "Expected tables member, provider, claim"
