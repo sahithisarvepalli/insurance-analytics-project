@@ -1,17 +1,47 @@
 
-# Core
+# ============================================
+# Core Data & Database
+# ============================================
 pandas==2.2.2
 numpy==1.26.4
 SQLAlchemy==2.0.25
 psycopg2-binary==2.9.9
 pyyaml==6.0.1
 
-# Modeling & viz
+# ============================================
+# Modeling, ML & Visualization
+# ============================================
 scikit-learn==1.4.0
 matplotlib==3.8.2
 seaborn==0.13.2
+plotly==5.18.0
 
-# Dev & tests
+# ============================================
+# Jupyter & Notebooks
+# ============================================
+jupyter==1.0.0
+jupyterlab==4.0.9
+ipykernel==6.27.1
+notebook==7.0.6
+ipywidgets==8.1.1
+nbformat==5.9.2
+
+# ============================================
+# Development & Testing
+# ============================================
 pytest==8.0.0
+pytest-cov==4.1.0
+black==24.1.0
+flake8==7.0.0
+isort==5.13.2
+mypy==1.8.0
 alembic==1.13.1
 openpyxl==3.1.2
+python-dotenv==1.0.0
+
+# ============================================
+# Utilities & Logging
+# ============================================
+requests==2.31.0
+python-dateutil==2.8.2
+pytz==2024.1
