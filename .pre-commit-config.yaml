@@ -40,7 +40,7 @@ repos:
         additional_dependencies:
           - types-PyYAML
           - types-requests
-        args: [--ignore-missing-imports, --no-error-summary]
+        args: [--config-file, pyproject.toml, --ignore-missing-imports, --no-error-summary]
         exclude: ^(sas-python-examples|concepts|src|tests)/
 
   - repo: https://github.com/pycqa/bandit
