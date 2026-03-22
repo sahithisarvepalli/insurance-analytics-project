@@ -65,7 +65,7 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 engine = create_engine(DATABASE_URL)
 
 # Query data
-query = "SELECT * FROM insurance.claims LIMIT 10"
+query = "SELECT * FROM insurance.claim LIMIT 10"
 df = pd.read_sql(query, engine)
 df.head()
 ```

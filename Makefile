@@ -63,11 +63,13 @@ check: lint check-types test
 
 run-jupyter:
 	@echo "📓 Starting Jupyter Notebook on http://localhost:8889"
-	jupyter notebook --ip=0.0.0.0 --port=8889 --no-browser --allow-root notebooks/
+	@echo "📝 Access: http://localhost:8889 (no password needed)"
+	jupyter notebook --ip=0.0.0.0 --port=8889 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password='' notebooks/
 
 run-jupyterlab:
 	@echo "🧪 Starting JupyterLab on http://localhost:8888"
-	jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root notebooks/
+	@echo "📝 Access: http://localhost:8888 (no password needed)"
+	jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password='' notebooks/
 
 db-init:
 	@echo "🗄️  Initializing database..."
