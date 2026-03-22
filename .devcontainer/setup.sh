@@ -21,7 +21,12 @@ git config --global --add safe.directory /workspaces/insurance-analytics-project
 echo "📦 Installing Python dependencies..."
 pip install --upgrade pip setuptools wheel >/dev/null
 pip install -r requirements.txt
+pip install -e .[dev]
 
-# Step 3: Run database initialization
+# Step 3: Set up pre-commit hooks
+echo "🔗 Setting up pre-commit hooks..."
+pre-commit install --install-hooks || echo "⚠️  Pre-commit setup failed, continuing..."
+
+# Step 4: Run database initialization
 echo ""
 bash .devcontainer/init-db.sh

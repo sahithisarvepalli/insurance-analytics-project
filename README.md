@@ -421,7 +421,136 @@ pytest --cov=src --cov-report=html
 
 ---
 
-## 🔄 GitHub Actions CI/CD
+## �️ Code Quality & Linting
+
+Comprehensive code quality tooling for professional development:
+
+### 🔧 Available Tools
+
+**Formatting & Style:**
+- **Black** – Uncompromising code formatter (100 char lines)
+- **isort** – Import sorting with black compatibility
+- **docformatter** – Docstring formatting
+- **Ruff** – Fast Python linter and formatter
+
+**Linting & Analysis:**
+- **flake8** – Style guide enforcement + complexity checks
+- **pylint** – Comprehensive static analysis
+- **mypy** – Static type checking
+- **bandit** – Security vulnerability scanning
+- **radon** – Cyclomatic complexity analysis
+- **xenon** – Strict complexity limits
+- **vulture** – Dead code detection
+- **cohesion** – Module cohesion analysis
+
+**Pre-commit Hooks:**
+- **pre-commit** – Automated quality checks on commit
+- Configured with 12+ hooks for comprehensive validation
+
+### 🚀 Quick Commands
+
+```bash
+# Format all code
+make format
+
+# Run all linters
+make lint
+
+# Type checking
+make check-types
+
+# Code quality analysis
+make quality
+
+# Security scanning
+make security
+
+# Complexity analysis
+make complexity
+
+# Documentation checks
+make docs
+
+# Run pre-commit hooks
+make pre-commit
+
+# Run everything
+make check
+```
+
+### 📊 Dev Container Integration
+
+VS Code extensions automatically installed:
+- Python, Pylance, debugpy
+- Black, isort, flake8, mypy, pylint
+- Jupyter, SQL Tools, GitLens
+- Markdown linting, spell checker
+- Docker, Git Graph, Todo Tree
+
+**Auto-formatting on save** enabled for:
+- Python (black + isort)
+- JSON/YAML (prettier)
+- Markdown (prettier)
+
+### 🔍 CI/CD Quality Gates
+
+GitHub Actions runs comprehensive checks:
+
+**Lint Job:**
+- Pre-commit hooks validation
+- Code formatting verification
+- Static analysis (pylint, mypy, bandit)
+- Complexity and maintainability metrics
+
+**Test Job:**
+- pytest with coverage reporting
+- Codecov integration
+- JUnit XML reports
+
+**SonarCloud Analysis:**
+- Code quality metrics
+- Security hotspots
+- Technical debt analysis
+- Coverage integration
+
+### 📋 Configuration Files
+
+- `pyproject.toml` – Centralized tool configuration
+- `.pre-commit-config.yaml` – Pre-commit hook definitions
+- `sonar-project.properties` – SonarCloud analysis settings
+- `requirements.txt` – All development dependencies
+
+### 🎯 Quality Standards
+
+**Code Style:**
+- PEP 8 compliant with Black formatting
+- 100 character line length
+- Import sorting with isort
+- Comprehensive docstrings
+
+**Type Safety:**
+- Full type hints required
+- mypy strict mode enabled
+- No `Any` types without justification
+
+**Security:**
+- Bandit security scanning
+- Dependency vulnerability checks
+- No hardcoded secrets
+
+**Complexity:**
+- Cyclomatic complexity < 10
+- Function length < 50 lines
+- Module cohesion > 0.7
+
+**Testing:**
+- 80%+ code coverage required
+- Unit tests for all functions
+- Integration tests for pipelines
+
+---
+
+## �🔄 GitHub Actions CI/CD
 
 Automated workflow on every push/PR:
 
