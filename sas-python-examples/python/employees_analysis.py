@@ -6,15 +6,13 @@ data = {
     "name": ["John", "Mary", "David", "Lisa", "James"],
     "age": [28, 35, 42, 30, 50],
     "salary": [40000, 55000, 65000, 48000, 70000],
-    "department": ["IT", "HR", "Finance", "IT", "Finance"]
+    "department": ["IT", "HR", "Finance", "IT", "Finance"],
 }
 
 df = pd.DataFrame(data)
 
 # Step 2: Create new variable (like DATA step)
-df["age_group"] = df["age"].apply(
-    lambda x: "Senior" if x >= 40 else "Junior"
-)
+df["age_group"] = df["age"].apply(lambda x: "Senior" if x >= 40 else "Junior")
 
 # Step 3: Print dataset
 print("Employees Updated:")

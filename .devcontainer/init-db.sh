@@ -86,14 +86,14 @@ else
     # Step 5: Generate synthetic data
     status "🎲 Generating synthetic data..."
     mkdir -p data notebooks/outputs
-    
+
     GEN_OUTPUT=$(python -m src.generate_synthetic \
         --rows-members 2000 \
         --rows-providers 300 \
         --rows-claims 5000 \
         --out-dir data/ 2>&1)
     GEN_EXIT=$?
-    
+
     if [ $GEN_EXIT -eq 0 ]; then
         success "Generated synthetic data: 2000 members, 300 providers, 5000 claims"
     else
@@ -102,7 +102,7 @@ else
         echo "$GEN_OUTPUT"
         exit 1
     fi
-    
+
     # Step 6: Load data into database
     status "📥 Loading data into database..."
     LOAD_OUTPUT=$(python -m src.load \
@@ -111,7 +111,7 @@ else
         --providers data/sample_providers.csv \
         --claims data/sample_claims.csv 2>&1)
     LOAD_EXIT=$?
-    
+
     if [ $LOAD_EXIT -eq 0 ]; then
         success "Data loaded successfully"
     else

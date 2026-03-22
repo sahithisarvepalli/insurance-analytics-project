@@ -4,7 +4,6 @@ Concept: Date Handling
 Description: Work with dates using pandas and datetime.
 """
 
-
 import pandas as pd
 
 

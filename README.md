@@ -13,12 +13,12 @@ Modern, end-to-end **insurance analytics** project using **Python 3.11 + Postgre
 ## ✨ Key Features
 
 ✅ **End-to-End Data Pipeline**
-- Synthetic members/providers/claims data generation  
+- Synthetic members/providers/claims data generation
 - CSV → Database loading via SQLAlchemy + pandas
 - Data transformations, joins, and KPI aggregation
 
 ✅ **Interactive Notebooks**
-- Jupyter & JupyterLab support  
+- Jupyter & JupyterLab support
 - Data exploration and visualization
 - Model development and testing
 
@@ -232,12 +232,12 @@ Best option for consistent development across team members.
    - Ready to use!
 
 ### What Happens Automatically
-✅ Python 3.11 + PostgreSQL 15 set up  
-✅ All dependencies from `requirements.txt` installed  
-✅ Database schema created  
-✅ Sample data generated (2000 members, 300 providers, 5000 claims)  
-✅ VS Code extensions installed (Python, Jupyter, Git, etc.)  
-✅ Jupyter kernel configured  
+✅ Python 3.11 + PostgreSQL 15 set up
+✅ All dependencies from `requirements.txt` installed
+✅ Database schema created
+✅ Sample data generated (2000 members, 300 providers, 5000 claims)
+✅ VS Code extensions installed (Python, Jupyter, Git, etc.)
+✅ Jupyter kernel configured
 ✅ Black formatter & linters configured
 
 ### After Setup
@@ -290,10 +290,10 @@ make run-jupyterlab    # Open http://localhost:8888
 - `04_reporting/` – Dashboard & report generation
 
 **Features:**
-✅ Auto-loaded with project dependencies  
-✅ Database connection configured  
-✅ Access to all `src/` modules  
-✅ Auto-reload enabled for code changes  
+✅ Auto-loaded with project dependencies
+✅ Database connection configured
+✅ Access to all `src/` modules
+✅ Auto-reload enabled for code changes
 
 **Example Notebook Code:**
 ```python
@@ -569,7 +569,7 @@ See `.github/workflows/` for configuration.
 
 Reference translations of common SAS workflows:
 
-**SAS Code:** `sas-python-examples/sas/employees_analysis.sas`  
+**SAS Code:** `sas-python-examples/sas/employees_analysis.sas`
 **Python Code:** `sas-python-examples/python/employees_analysis.py`
 
 Good for:
@@ -676,5 +676,5 @@ MIT License – See [LICENSE](LICENSE)
 
 ---
 
-**Questions?** Check docs/, concepts/, or sas-python-examples/ for examples.  
+**Questions?** Check docs/, concepts/, or sas-python-examples/ for examples.
 **Happy analyzing!** 📊

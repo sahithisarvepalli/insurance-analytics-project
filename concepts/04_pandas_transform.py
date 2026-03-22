@@ -29,7 +29,9 @@ def main():
     print(grouped)
 
     # Add a new column: age category
-    df["age_category"] = pd.cut(df["age"], bins=[0, 30, 40, 100], labels=["Young", "Middle", "Old"])
+    df["age_category"] = pd.cut(
+        df["age"], bins=[0, 30, 40, 100], labels=["Young", "Middle", "Old"]
+    )
     print("\nWith age category:")
     print(df)
 
