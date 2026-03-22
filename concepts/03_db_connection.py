@@ -6,7 +6,9 @@ Note: Assumes a running PostgreSQL instance. Set DATABASE_URL env var.
 """
 
 import os
+
 from sqlalchemy import create_engine, text
+
 
 def main():
     # Get database URL from env (fallback to SQLite for demo)
@@ -33,6 +35,7 @@ def main():
         print("Users in database:")
         for row in rows:
             print(row)
+
 
 if __name__ == "__main__":
     main()

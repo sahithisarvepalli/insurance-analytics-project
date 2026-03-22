@@ -4,8 +4,9 @@ Concept: Date Handling
 Description: Work with dates using pandas and datetime.
 """
 
+
 import pandas as pd
-from datetime import datetime
+
 
 def main():
     # Current date
@@ -30,6 +31,7 @@ def main():
     formatted = dates.strftime("%B %d, %Y")
     print("Formatted dates:")
     print(formatted)
+
 
 if __name__ == "__main__":
     main()

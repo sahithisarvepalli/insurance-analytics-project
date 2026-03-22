@@ -7,8 +7,10 @@ Example: Run with --name "Alice" --age 30
 
 import argparse
 
+
 def main(name, age):
     print(f"Hello, {name}! You are {age} years old.")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Greet a person with name and age.")

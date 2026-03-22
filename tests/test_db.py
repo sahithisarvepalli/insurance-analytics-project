@@ -1,8 +1,11 @@
-import sys, os
+import os
+import sys
+
 # Ensure the repo root is on sys.path so "from src..." imports work in CI and locally
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from sqlalchemy import text
+
 from src.utils import get_engine
 
 

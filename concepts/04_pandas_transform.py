@@ -5,14 +5,14 @@ Description: Load data, perform aggregations, filtering, and transformations.
 """
 
 import pandas as pd
-import numpy as np
+
 
 def main():
     # Create sample data
     data = {
         "name": ["Alice", "Bob", "Charlie", "Alice"],
         "age": [25, 30, 35, 25],
-        "score": [85, 90, 78, 92]
+        "score": [85, 90, 78, 92],
     }
     df = pd.DataFrame(data)
     print("Original data:")
@@ -32,6 +32,7 @@ def main():
     df["age_category"] = pd.cut(df["age"], bins=[0, 30, 40, 100], labels=["Young", "Middle", "Old"])
     print("\nWith age category:")
     print(df)
+
 
 if __name__ == "__main__":
     main()

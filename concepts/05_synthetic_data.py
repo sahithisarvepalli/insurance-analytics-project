@@ -7,6 +7,7 @@ Description: Use numpy to generate random data with distributions.
 import numpy as np
 import pandas as pd
 
+
 def main():
     rng = np.random.default_rng(42)  # Reproducible random
 
@@ -26,6 +27,7 @@ def main():
 
     df.to_csv("synthetic_data.csv", index=False)
     print("Saved to synthetic_data.csv")
+
 
 if __name__ == "__main__":
     main()

@@ -5,8 +5,10 @@ Description: Use pandas to read from CSV, manipulate data, and write back.
 Example: Reads sample.csv, adds a column, writes to output.csv
 """
 
-import pandas as pd
 import os
+
+import pandas as pd
+
 
 def main():
     # Create sample data if file doesn't exist
@@ -26,6 +28,7 @@ def main():
     # Write to new CSV
     df.to_csv("output.csv", index=False)
     print("Wrote output.csv with added column")
+
 
 if __name__ == "__main__":
     main()
