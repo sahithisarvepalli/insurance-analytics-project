@@ -1,16 +1,12 @@
 {
-    "name": "Insurance Analytics - Production",
+    "name": "Insurance Analytics",
     "dockerComposeFile": "docker-compose.yml",
     "service": "app",
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-    "remoteEnv": {
-        "DATABASE_URL": "postgresql://postgres:postgres@db:5432/insurdb",
-        "PYTHONPATH": "/workspaces/${localWorkspaceFolderBasename}",
-        "JUPYTER_ENABLE_LAB": "yes",
-        "GIT_CONFIG_GLOBAL": "/dev/null"
+    "env": {
+        "DATABASE_URL": "postgresql://postgres:postgres@db:5432/insurdb"
     },
-    "remoteUser": "vscode",
-    "postCreateCommand": "bash -lc 'set -euo pipefail; export GIT_CONFIG_GLOBAL=/dev/null; git config --local user.email \"dev@insurance.local\" && git config --local user.name \"Dev User\" && git config --local --add safe.directory /workspaces/insurance-analytics-project; echo \"GIT_CONFIG_GLOBAL=/dev/null\" >> /home/vscode/.bashrc; echo \"GIT_CONFIG_GLOBAL=/dev/null\" >> /home/vscode/.bash_profile; echo \"📦 Installing dependencies...\"; pip install --upgrade pip setuptools wheel; pip install -r requirements.txt; echo \"🔌 Waiting for database...\"; until pg_isready -h db -p 5432 -U postgres; do echo \"   Waiting for PostgreSQL...\"; sleep 2; done; echo \"📚 Setting up database schema...\"; psql \"postgresql://postgres:postgres@db:5432/insurdb\" -c \"CREATE SCHEMA IF NOT EXISTS insurance;\"; psql \"postgresql://postgres:postgres@b:5432/insurdb\" -f sql/ddl_create_tables.sql; echo \"🎲 Generating synthetic data...\"; mkdir -p data notebooks/outputs; python -m src.generate_synthetic --rows-members 2000 --rows-providers 300 --rows-claims 5000 --out-dir data/; echo \"📥 Loading data...\"; python -m src.load --from-csv --members data/sample_members.csv --providers data/sample_providers.csv --claims data/sample_claims.csv; echo \"✅ Setup complete!\"'",
+    "postCreateCommand": "bash -lc 'set -euo pipefail; pip install -r requirements.txt; until pg_isready -h db -p 5432 -U postgres; do echo \"Waiting for db...\"; sleep 2; done; psql \"postgresql://postgres:postgres@db:5432/insurdb\" -c \"CREATE SCHEMA IF NOT EXISTS insurance;\"; psql \"postgresql://postgres:postgres@db:5432/insurdb\" -f sql/ddl_create_tables.sql; mkdir -p data notebooks/outputs; python -m src.generate_synthetic --rows-members 2000 --rows-providers 300 --rows-claims 5000 --out-dir data/; python -m src.load --from-csv --members data/sample_members.csv --providers data/sample_providers.csv --claims data/sample_claims.csv'",
     "forwardPorts": [5432, 8888, 8889],
     "portsAttributes": {
         "5432": {
@@ -30,45 +26,14 @@
         "vscode": {
             "extensions": [
                 "ms-python.python",
-                "ms-python.vscode-pylance",
-                "ms-python.debugpy",
                 "ms-python.pylint",
                 "ms-python.black-formatter",
-                "ms-python.isort",
-                "ms-databasetools.mssql",
                 "ms-toolsai.jupyter",
                 "ms-toolsai.jupyter-keymap",
                 "ms-toolsai.jupyter-renderers",
-                "ms-toolsai.vscode-jupyter-cell-tags",
-                "ms-toolsai.vscode-jupyter-slideshow",
                 "eamodio.gitlens",
                 "GitHub.copilot"
-            ],
-            "settings": {
-                "python.defaultInterpreterPath": "${containerEnv:PYTHONPATH}",
-                "python.linting.enabled": true,
-                "python.linting.pylintEnabled": true,
-                "python.formatting.provider": "black",
-                "python.formatting.blackArgs": ["--line-length=100"],
-                "[python]": {
-                    "editor.defaultFormatter": "ms-python.python",
-                    "editor.formatOnSave": true,
-                    "editor.codeActionsOnSave": {
-                        "source.organizeImports": true
-                    }
-                },
-                "jupyter.askForKernelRestart": false,
-                "jupyter.alwaysTrustNotebooks": true,
-                "files.exclude": {
-                    "**/__pycache__": true,
-                    "**/*.pyc": true,
-                    "**/.pytest_cache": true,
-                    "**/.mypy_cache": true
-                }
-            }
+            ]
         }
-    },
-    "features": {
-        "ghcr.io/devcontainers/features/git:1": {}
     }
 }
