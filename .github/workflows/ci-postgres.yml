@@ -4,8 +4,16 @@ name: CI - Python + PostgreSQL
 on:
   push:
     branches: [ main, master ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'sonar-project.properties'
+      - '.github/workflows/ci-postgres.yml' # Run if the CI config itself changes
   pull_request:
     branches: [ main, master ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
 
 jobs:
   # JOB 1: Static Analysis and Linting
