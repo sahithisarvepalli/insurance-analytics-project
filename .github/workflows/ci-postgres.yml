@@ -8,6 +8,8 @@ on:
     branches: [ main, master ]
 
 jobs:
+  # JOB 1: Static Analysis and Linting
+  # This job checks code style and security without running any code.
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +39,7 @@ jobs:
 
           # Linting
           flake8 src tests concepts
-          pylint src tests concepts || true  # Allow warnings
+          pylint src tests concepts || true  # Allow warnings to proceed
 
           # Type checking
           mypy src
@@ -55,15 +57,8 @@ jobs:
           # Import analysis
           cohesion -d src
 
-      - name: Static analysis report
-        run: |
-          echo "📊 Generating static analysis reports..."
-          mkdir -p reports
-          radon cc src --json > reports/complexity.json
-          radon mi src --json > reports/maintainability.json
-          radon hal src > reports/halstead.txt
-          bandit -r src -f json -o reports/security.json || true
-
+  # JOB 2: Database Integration Tests
+  # This job spins up a real Postgres container to run functional tests.
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -71,6 +66,7 @@ jobs:
       matrix:
         python-version: [ "3.11" ]
 
+    # Service containers to run with this job
     services:
       postgres:
         image: postgres:15
@@ -114,6 +110,7 @@ jobs:
       - name: Run transforms & tests
         run: |
           python -m src.transform
+          # Generate coverage.xml and junit-report.xml for SonarCloud
           pytest -q --junitxml=junit-report.xml --cov=src --cov-report=xml:coverage.xml
 
       - name: Upload coverage to Codecov
@@ -124,14 +121,32 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
 
+      # IMPORTANT: Save the test results so the next job (Sonar) can read them
+      # without needing to restart the database.
+      - name: Archive test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            coverage.xml
+            junit-report.xml
+
+  # JOB 3: SonarCloud Analysis
+  # This job reports metrics to SonarCloud. It depends on 'test' completing.
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
-    needs: test
+    needs: test # Ensures tests pass and artifacts are ready before starting
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0
+
+      # Retrieve the reports generated in the 'test' job
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -144,12 +159,10 @@ jobs:
           pip install -r requirements.txt
           pip install -e .[dev]
 
-      - name: Generate test coverage and reports
+      - name: Generate static reports
         run: |
-          # Run tests with coverage
-          pytest --cov=src --cov-report=xml --junitxml=junit-report.xml
-
-          # Generate additional reports for SonarCloud
+          # We don't run pytest here to avoid 'Connection Refused' errors.
+          # We use the coverage.xml downloaded from the previous job instead.
           pylint src --output-format=parseable > pylint-report.txt || true
           bandit -r src -f json -o bandit-report.json || true
           radon cc src --json > radon-cc-report.json || true
@@ -164,3 +177,5 @@ jobs:
           args: >
             -Dsonar.organization=${{ github.repository_owner }}
             -Dsonar.projectKey=${{ github.repository_owner }}_insurance-analytics-project
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.python.xunit.reportPath=junit-report.xml
