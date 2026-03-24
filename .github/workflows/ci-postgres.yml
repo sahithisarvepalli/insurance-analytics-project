@@ -114,8 +114,9 @@ jobs:
           pytest -q --junitxml=junit-report.xml --cov=src --cov-report=xml:coverage.xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }} # v4+ requires a token for most uploads
           file: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
@@ -156,26 +157,22 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -e .[dev]
+          pip install pylint bandit radon
 
       - name: Generate static reports
         run: |
-          # We don't run pytest here to avoid 'Connection Refused' errors.
-          # We use the coverage.xml downloaded from the previous job instead.
+          # These filenames MUST match what's in your sonar-project.properties
           pylint src --output-format=parseable > pylint-report.txt || true
           bandit -r src -f json -o bandit-report.json || true
-          radon cc src --json > radon-cc-report.json || true
-          radon mi src --json > radon-mi-report.json || true
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        # Using the official SonarSource action
+        uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.organization=${{ github.repository_owner }}
-            -Dsonar.projectKey=${{ github.repository_owner }}_insurance-analytics-project
-            -Dsonar.python.coverage.reportPaths=coverage.xml
-            -Dsonar.python.xunit.reportPath=junit-report.xml
+            -Dsonar.organization=sahithisarvepalli
+            -Dsonar.projectKey=sahithisarvepalli_insurance-analytics-project
+            -Dsonar.host.url=https://sonarcloud.io
