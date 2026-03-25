@@ -8,9 +8,6 @@ from .utils import get_engine, logger
 
 def load_from_csv(members, providers, claims):
     eng = get_engine()
-    with eng.begin() as con:
-        # ensure schema exists
-        con.execute(text("CREATE SCHEMA IF NOT EXISTS insurance;"))
 
     def read_datesafe(path, date_cols):
         # Load date columns as strings, then normalize
@@ -27,25 +24,24 @@ def load_from_csv(members, providers, claims):
                 df[col] = pd.to_datetime(s, errors="coerce")
         return df
 
-    # Members
+    # Read all CSVs before opening any DB connection
     members_df = read_datesafe(members, ["dob", "effective_date", "termination_date"])
-    members_df.to_sql("member", eng, schema="insurance", if_exists="append", index=False)
-
-    # Providers
-    pd.read_csv(providers).to_sql(
-        "provider", eng, schema="insurance", if_exists="append", index=False
-    )
-
-    # Claims
+    providers_df = pd.read_csv(providers)
     claims_df = read_datesafe(claims, ["service_date"])
-    claims_df.to_sql("claim", eng, schema="insurance", if_exists="append", index=False)
+
+    # All three writes inside one transaction — partial loads roll back on failure
+    with eng.begin() as con:
+        con.execute(text("CREATE SCHEMA IF NOT EXISTS insurance;"))
+        members_df.to_sql("member", con, schema="insurance", if_exists="append", index=False)
+        providers_df.to_sql("provider", con, schema="insurance", if_exists="append", index=False)
+        claims_df.to_sql("claim", con, schema="insurance", if_exists="append", index=False)
 
     logger.info("Done loading CSVs.")
 
 
-def main(args):
-    if args.from_csv:
-        load_from_csv(args.members, args.providers, args.claims)
+def main(parsed_args):
+    if parsed_args.from_csv:
+        load_from_csv(parsed_args.members, parsed_args.providers, parsed_args.claims)
 
 
 if __name__ == "__main__":
@@ -54,5 +50,4 @@ if __name__ == "__main__":
     ap.add_argument("--members", default="data/sample_members.csv")
     ap.add_argument("--providers", default="data/sample_providers.csv")
     ap.add_argument("--claims", default="data/sample_claims.csv")
-    args = ap.parse_args()
-    main(args)
+    main(ap.parse_args())

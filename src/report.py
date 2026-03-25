@@ -9,7 +9,7 @@ def main(out):
     monthly = pd.read_csv("outputs/monthly.csv") if os.path.exists("outputs/monthly.csv") else None
     metrics_text = None
     if os.path.exists("outputs/model_metrics.txt"):
-        with open("outputs/model_metrics.txt") as fh:
+        with open("outputs/model_metrics.txt", encoding="utf-8") as fh:
             metrics_text = fh.read()
     with pd.ExcelWriter(out, engine="openpyxl") as xl:
         if kpis is not None:

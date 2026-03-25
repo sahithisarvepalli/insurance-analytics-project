@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 
 import yaml
 from sqlalchemy import create_engine
@@ -8,10 +9,15 @@ logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 
+def _redact_url(url: str) -> str:
+    """Replace password in a DB URL with *** to prevent credential leaks in logs."""
+    return re.sub(r"(://[^:/@]+:)[^@]+(@)", r"\1***\2", url)
+
+
 def load_config(path="config/db.yaml"):
     raw = {}
     if os.path.exists(path):
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             raw = yaml.safe_load(fh) or {}
 
     def expand(v):
@@ -32,5 +38,5 @@ def get_engine():
         pwd = os.getenv("DB_PASS", cfg.get("password", "postgres"))
         db = os.getenv("DB_NAME", cfg.get("database", "insurdb"))
         url = f"postgresql+psycopg2://{user}:{pwd}@{host}:{port}/{db}"
-    logger.info(f"Using engine URL: {url}")
+    logger.info("Connecting to: %s", _redact_url(url))
     return create_engine(url)

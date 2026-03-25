@@ -6,15 +6,16 @@ from .utils import get_engine, logger
 
 def main(rows_members, rows_providers, rows_claims):
     eng = get_engine()
-    gen_members(rows_members).to_sql(
-        "member", eng, schema="insurance", if_exists="append", index=False
-    )
-    gen_providers(rows_providers).to_sql(
-        "provider", eng, schema="insurance", if_exists="append", index=False
-    )
-    gen_claims(rows_claims, rows_members, rows_providers).to_sql(
-        "claim", eng, schema="insurance", if_exists="append", index=False
-    )
+    members = gen_members(rows_members)
+    providers = gen_providers(rows_providers)
+    claims = gen_claims(rows_claims, rows_members, rows_providers)
+
+    # Generate all data before opening the connection; write atomically
+    with eng.begin() as con:
+        members.to_sql("member", con, schema="insurance", if_exists="append", index=False)
+        providers.to_sql("provider", con, schema="insurance", if_exists="append", index=False)
+        claims.to_sql("claim", con, schema="insurance", if_exists="append", index=False)
+
     logger.info("Seeded data directly into DB.")
 
 

@@ -1,13 +1,10 @@
-import os
-import sys
-
+import pytest
 from sqlalchemy import text
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))  # noqa: E402
-
-from src.utils import get_engine  # noqa
+from src.utils import get_engine
 
 
+@pytest.mark.integration
 def test_schema_tables_exist():
     eng = get_engine()
     with eng.connect() as con:

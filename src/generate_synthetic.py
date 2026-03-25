@@ -18,7 +18,8 @@ def gen_members(n=50_000, seed=42):
     )
     return pd.DataFrame(
         {
-            "person_id": rng.integers(10_000_000, 99_999_999, size=n),
+            # sample without replacement to guarantee unique person_ids
+            "person_id": 10_000_000 + rng.choice(89_999_999, size=n, replace=False),
             "dob": dob,
             "gender": rng.choice(list("MF"), size=n),
             "region": rng.choice(["East", "West", "North", "South"], size=n),

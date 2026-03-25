@@ -33,7 +33,7 @@ def run_transform():
     logger.info(f"Loaded {len(df):,} joined rows")
 
     # Derivations
-    today = pd.Timestamp("2024-12-31")
+    today = pd.Timestamp.now().normalize()
     df["age"] = (today - df["dob"]).dt.days // 365
     df["age_band"] = pd.cut(
         df["age"],
