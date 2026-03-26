@@ -1,0 +1,49 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          clean_tag="${last_tag#v}"   # remove leading v
+          echo "last_tag=$last_tag" >> $GITHUB_OUTPUT
+          echo "clean_tag=$clean_tag" >> $GITHUB_OUTPUT
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          IFS='.' read -r major minor patch <<<"${{ steps.get_tag.outputs.clean_tag }}"
+          # Start from next patch and increment until an unused tag is found
+          patch=$((patch+1))
+          new_tag="v$major.$minor.$patch"
+          while git rev-parse --verify "refs/tags/$new_tag" >/dev/null 2>&1; do
+            patch=$((patch+1))
+            new_tag="v$major.$minor.$patch"
+          done
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+
+      - name: Create tag
+        run: |
+          git tag ${{ steps.bump.outputs.new_tag }}
+          git push origin ${{ steps.bump.outputs.new_tag }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.bump.outputs.new_tag }}
+          generate_release_notes: true
