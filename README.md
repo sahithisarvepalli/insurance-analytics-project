@@ -30,27 +30,48 @@ generate_synthetic → load (CSV → PG) → transform (KPIs) → model (ML) →
 
 ## Quick Start
 
+### Dev Container (recommended — zero setup)
+
+Open this repository in VS Code and choose **Reopen in Container**. The dev container automatically:
+
+- Installs all Python dependencies (`requirements.txt` + the package itself)
+- Starts a PostgreSQL 15 service (`db:5432`) and waits for it to be healthy
+- Sets `DATABASE_URL` and `PYTHONPATH` environment variables
+- Initialises the database schema and pre-commit hooks
+
+Once inside the container, run the pipeline directly — no virtual environment or Docker commands needed:
+
 ```bash
-# Install
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt && pip install -e .
+# Generate synthetic CSV data
+make data-gen
 
-# PostgreSQL (Docker)
-docker run --name insurdb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=insurdb \
-  -p 5432:5432 -d postgres:15
-export DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
+# Load CSVs into PostgreSQL
+make load-data
 
-# Schema + data
-make db-init
-make data-gen && make load-data
-
-# Run pipeline
+# Run the full pipeline
 python -m src.transform
 python -m src.model
 python -m src.report --out outputs/insurance_summary.xlsx
 ```
 
-Dev container (recommended for teams): [docs/setup.md](docs/setup.md)
+> **Note:** `DATABASE_URL` is pre-set to `postgresql://postgres:postgres@db:5432/insurdb`.
+> The database host is `db` (the Docker Compose service name), not `localhost`.
+
+### Local setup (outside dev container)
+
+Only needed if you are not using the dev container:
+
+```bash
+pip install -r requirements.txt && pip install -e .
+
+# Start PostgreSQL separately, then export the connection URL
+export DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
+
+make db-init
+make data-gen && make load-data
+```
+
+Full setup guide: [docs/setup.md](docs/setup.md)
 
 ---
 
