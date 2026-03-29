@@ -1,4 +1,4 @@
-.PHONY: help install clean test lint format check-types check run-jupyter run-jupyterlab db-init db-reset data-gen load-data setup quality security complexity docs pre-commit
+.PHONY: help install clean test lint format check-types check run-jupyter run-jupyterlab db-init db-reset data-gen load-data setup quality security complexity docs pre-commit airflow-up airflow-down airflow-logs
 
 help:
 	@echo "📊 Insurance Analytics - Production Grade Monorepo"
@@ -24,6 +24,9 @@ help:
 	@echo "  make data-gen       - Generate synthetic data"
 	@echo "  make load-data      - Load data into database"
 	@echo "  make setup          - Full setup (db + data)"
+	@echo "  make airflow-up     - Start Airflow stack (webserver + scheduler)"
+	@echo "  make airflow-down   - Stop Airflow stack"
+	@echo "  make airflow-logs   - Tail Airflow scheduler logs"
 
 install:
 	@echo "📦 Installing dependencies..."
@@ -151,3 +154,17 @@ load-data:
 
 setup: install db-init data-gen load-data
 	@echo "✅ Full setup complete!"
+
+airflow-up:
+	@echo "🚀 Starting Airflow (webserver on http://localhost:8080)..."
+	docker network create insurance-network 2>/dev/null || true
+	docker compose -f airflow/docker-compose-airflow.yml up -d
+	@echo "✅ Airflow started — login: admin / admin"
+
+airflow-down:
+	@echo "⏹️  Stopping Airflow..."
+	docker compose -f airflow/docker-compose-airflow.yml down
+	@echo "✅ Airflow stopped"
+
+airflow-logs:
+	docker compose -f airflow/docker-compose-airflow.yml logs -f airflow-scheduler

@@ -29,9 +29,11 @@ def load_from_csv(members, providers, claims):
     providers_df = pd.read_csv(providers)
     claims_df = read_datesafe(claims, ["service_date"])
 
-    # All three writes inside one transaction — partial loads roll back on failure
+    # All three writes inside one transaction — partial loads roll back on failure.
+    # Uses truncate-then-load to stay idempotent across repeated / scheduled runs.
     with eng.begin() as con:
         con.execute(text("CREATE SCHEMA IF NOT EXISTS insurance;"))
+        con.execute(text("TRUNCATE insurance.claim, insurance.provider, insurance.member CASCADE;"))
         members_df.to_sql("member", con, schema="insurance", if_exists="append", index=False)
         providers_df.to_sql("provider", con, schema="insurance", if_exists="append", index=False)
         claims_df.to_sql("claim", con, schema="insurance", if_exists="append", index=False)

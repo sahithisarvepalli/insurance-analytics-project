@@ -1,0 +1,2 @@
+# Place custom Airflow plugins here (operators, hooks, sensors).
+# Currently empty — the default BashOperator is sufficient for the pipeline.

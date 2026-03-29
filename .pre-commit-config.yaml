@@ -41,7 +41,7 @@ repos:
           - types-PyYAML
           - types-requests
         args: [--config-file, pyproject.toml, --ignore-missing-imports, --no-error-summary]
-        exclude: ^(sas-python-examples|concepts|src|tests)/
+        exclude: ^(sas-python-examples|concepts|src|tests|airflow)/
 
   - repo: https://github.com/pycqa/bandit
     rev: 1.7.6
@@ -55,17 +55,17 @@ repos:
     hooks:
       - id: pylint
         args: [--rcfile=pyproject.toml]
-        exclude: ^(sas-python-examples|concepts|src|tests)/
+        exclude: ^(sas-python-examples|concepts|src|tests|airflow)/
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.13
     hooks:
       - id: ruff
         args: [--fix, --ignore=E402]
-        exclude: ^(sas-python-examples|concepts)/
+        exclude: ^(sas-python-examples|concepts|airflow)/
       - id: ruff-format
         args: [--line-length=100]
-        exclude: ^(sas-python-examples|concepts)/
+        exclude: ^(sas-python-examples|concepts|airflow)/
 
   - repo: https://github.com/pycqa/docformatter
     rev: v1.7.5

@@ -89,6 +89,9 @@ Full setup guide: [docs/setup.md](docs/setup.md)
 | `make run-jupyterlab` | JupyterLab on :8888 |
 | `make data-gen` | Regenerate synthetic CSVs |
 | `make db-reset` | Drop + recreate schema |
+| `make airflow-up` | Start Airflow (UI on :8080) |
+| `make airflow-down` | Stop Airflow |
+| `make airflow-logs` | Tail Airflow scheduler logs |
 
 Run `make help` for the full list.
 
@@ -116,6 +119,7 @@ docs/           Detailed guides (setup, architecture, quality, git)
 |-----|----------|
 | [docs/setup.md](docs/setup.md) | Local & dev container setup |
 | [docs/architecture.md](docs/architecture.md) | Pipeline, DB schema, design decisions |
+| [docs/orchestration.md](docs/orchestration.md) | Airflow + GitHub Actions scheduling |
 | [docs/quality_guide.md](docs/quality_guide.md) | Linting, formatting, code quality tools |
 | [docs/git.md](docs/git.md) | Git workflow and branching |
 | [concepts/README.md](concepts/README.md) | 11 Python learning modules |

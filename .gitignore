@@ -36,3 +36,7 @@ config/local*
 
 # OS
 .DS_Store
+
+# Airflow runtime logs
+airflow/logs/
+!airflow/logs/.gitkeep

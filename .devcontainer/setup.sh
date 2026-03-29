@@ -23,6 +23,14 @@ pip install --upgrade pip setuptools wheel >/dev/null
 pip install -r requirements.txt
 pip install -e .[dev]
 
+# Step 2b: Install Apache Airflow (for DAG linting in pre-commit)
+# Uses the official constraint file to prevent dependency conflicts
+echo "🌊 Installing Apache Airflow (for linting)..."
+AIRFLOW_VERSION=2.10.4
+CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-3.11.txt"
+pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "${CONSTRAINT_URL}" || \
+    echo "⚠️  Airflow install failed — DAG linting may show import errors"
+
 # Step 3: Set up pre-commit hooks
 echo "🔗 Setting up pre-commit hooks..."
 pre-commit install --install-hooks || echo "⚠️  Pre-commit setup failed, continuing..."

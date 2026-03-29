@@ -9,11 +9,15 @@
         "JUPYTER_ENABLE_LAB": "yes"
     },
     "postCreateCommand": "bash .devcontainer/setup.sh",
-    "forwardPorts": [5432, 8888, 8889],
+    "forwardPorts": [5432, 8080, 8888, 8889],
     "portsAttributes": {
         "5432": {
             "label": "PostgreSQL",
             "onAutoForward": "silent"
+        },
+        "8080": {
+            "label": "Airflow UI",
+            "onAutoForward": "notify"
         },
         "8888": {
             "label": "Jupyter Lab",
