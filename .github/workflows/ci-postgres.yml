@@ -20,6 +20,11 @@ on:
       - 'requirements.txt'
       - 'pyproject.toml'
 
+permissions:
+  contents: read        # allow checkout of source code
+  pull-requests: write  # allow SonarCloud & Copilot agent to post PR comments/suggestions
+  security-events: write # allow uploading SARIF / security scan results
+
 jobs:
   # ── JOB 1: Static Analysis & Linting ────────────────────────────────────────
   lint:
@@ -146,6 +151,10 @@ jobs:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
     needs: test
+    permissions:
+      contents: read        # checkout source for scanning
+      pull-requests: write  # post SonarCloud Quality Gate status on PRs
+      security-events: write # upload SARIF results to GitHub Security tab
 
     steps:
       - uses: actions/checkout@v4
