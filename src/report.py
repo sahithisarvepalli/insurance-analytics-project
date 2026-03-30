@@ -1,3 +1,5 @@
+"""Generate an Excel summary report from the transform and model outputs."""
+
 import argparse
 import os
 
@@ -5,6 +7,7 @@ import pandas as pd
 
 
 def main(out):
+    """Compile KPI, monthly, and model metrics outputs into a single Excel workbook."""
     kpis = pd.read_csv("outputs/kpis.csv") if os.path.exists("outputs/kpis.csv") else None
     monthly = pd.read_csv("outputs/monthly.csv") if os.path.exists("outputs/monthly.csv") else None
     metrics_text = None

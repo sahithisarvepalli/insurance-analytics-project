@@ -1,3 +1,5 @@
+"""Generate synthetic insurance member, provider, and claims data for testing."""
+
 import argparse
 import os
 
@@ -6,6 +8,7 @@ import pandas as pd
 
 
 def gen_members(n=50_000, seed=42):
+    """Generate a DataFrame of synthetic insurance members with demographic data."""
     rng = np.random.default_rng(seed)
     dob_year = rng.integers(1955, 2005, size=n)
     dob_offset = rng.integers(0, 365, size=n)
@@ -30,6 +33,7 @@ def gen_members(n=50_000, seed=42):
 
 
 def gen_providers(n=2_000, seed=43):
+    """Generate a DataFrame of synthetic insurance providers with specialty and network data."""
     rng = np.random.default_rng(seed)
     return pd.DataFrame(
         {
@@ -45,6 +49,7 @@ def gen_providers(n=2_000, seed=43):
 
 
 def gen_claims(n=300_000, members_n=50_000, providers_n=2_000, seed=44):
+    """Generate a DataFrame of synthetic insurance claims with amounts and service details."""
     rng = np.random.default_rng(seed)
     service_dates = pd.to_datetime("2023-01-01") + pd.to_timedelta(
         rng.integers(0, 365, size=n), unit="D"
@@ -78,6 +83,7 @@ def gen_claims(n=300_000, members_n=50_000, providers_n=2_000, seed=44):
 
 
 def main(rows_members, rows_providers, rows_claims, out_dir):
+    """Generate synthetic data and write member, provider, and claims CSVs to disk."""
     out_dir = out_dir or "data"
     os.makedirs(out_dir, exist_ok=True)
     m = gen_members(rows_members)
