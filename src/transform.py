@@ -1,11 +1,16 @@
+"""Transform raw insurance claims data into KPI summaries and monthly aggregations."""
+
 import os
 
 import pandas as pd
 
 from .utils import get_engine, logger
 
+_PAID_AMOUNT_COL = "paid_amount"
+
 
 def run_transform():
+    """Run the full claims transformation pipeline and write CSV outputs."""
     eng = get_engine()
 
     q = """
@@ -46,8 +51,8 @@ def run_transform():
         df.groupby(["age_band", "member_region", "in_network"], dropna=False, observed=True)
         .agg(
             claims=("claim_id", "count"),
-            paid_total=("paid_amount", "sum"),
-            paid_avg=("paid_amount", "mean"),
+            paid_total=(_PAID_AMOUNT_COL, "sum"),
+            paid_avg=(_PAID_AMOUNT_COL, "mean"),
         )
         .reset_index()
     )
@@ -56,7 +61,7 @@ def run_transform():
     df["month"] = df["service_date"].dt.to_period("M").dt.to_timestamp()
     monthly = (
         df.groupby(["month", "member_region", "in_network"])
-        .agg(claims=("claim_id", "count"), paid_total=("paid_amount", "sum"))
+        .agg(claims=("claim_id", "count"), paid_total=(_PAID_AMOUNT_COL, "sum"))
         .reset_index()
     )
 

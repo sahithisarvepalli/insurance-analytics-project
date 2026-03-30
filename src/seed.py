@@ -1,10 +1,16 @@
+"""Seed synthetic insurance data directly into the database."""
+
 import argparse
 
 from .generate_synthetic import gen_claims, gen_members, gen_providers
 from .utils import get_engine, logger
 
+_SCHEMA = "insurance"
+_IF_EXISTS = "append"
+
 
 def main(rows_members, rows_providers, rows_claims):
+    """Generate synthetic data and load it directly into the database."""
     eng = get_engine()
     members = gen_members(rows_members)
     providers = gen_providers(rows_providers)
@@ -12,9 +18,9 @@ def main(rows_members, rows_providers, rows_claims):
 
     # Generate all data before opening the connection; write atomically
     with eng.begin() as con:
-        members.to_sql("member", con, schema="insurance", if_exists="append", index=False)
-        providers.to_sql("provider", con, schema="insurance", if_exists="append", index=False)
-        claims.to_sql("claim", con, schema="insurance", if_exists="append", index=False)
+        members.to_sql("member", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
+        providers.to_sql("provider", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
+        claims.to_sql("claim", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
 
     logger.info("Seeded data directly into DB.")
 

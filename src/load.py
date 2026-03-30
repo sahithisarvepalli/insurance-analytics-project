@@ -1,3 +1,5 @@
+"""Load insurance data from CSV files into the PostgreSQL database."""
+
 import argparse
 
 import pandas as pd
@@ -5,11 +7,17 @@ from sqlalchemy import text
 
 from .utils import get_engine, logger
 
+_SCHEMA = "insurance"
+_IF_EXISTS = "append"
+_PARSE_ERRORS = "coerce"
+
 
 def load_from_csv(members, providers, claims):
+    """Load member, provider, and claims data from CSV files into the database."""
     eng = get_engine()
 
     def read_datesafe(path, date_cols):
+        """Read a CSV file and parse specified columns as dates, handling epoch-ns strings."""
         # Load date columns as strings, then normalize
         df = pd.read_csv(path, dtype=dict.fromkeys(date_cols, "string"))
         for col in date_cols:
@@ -17,11 +25,11 @@ def load_from_csv(members, providers, claims):
             # Detect 15–19 digit epoch ns strings
             mask_ns = s.str.match(r"^\d{15,19}$")
             if mask_ns.any():
-                s_ns = pd.to_datetime(s.where(mask_ns, None), errors="coerce", unit="ns")
-                s_iso = pd.to_datetime(s.where(~mask_ns, None), errors="coerce")
+                s_ns = pd.to_datetime(s.where(mask_ns, None), errors=_PARSE_ERRORS, unit="ns")
+                s_iso = pd.to_datetime(s.where(~mask_ns, None), errors=_PARSE_ERRORS)
                 df[col] = s_ns.fillna(s_iso)
             else:
-                df[col] = pd.to_datetime(s, errors="coerce")
+                df[col] = pd.to_datetime(s, errors=_PARSE_ERRORS)
         return df
 
     # Read all CSVs before opening any DB connection
@@ -34,14 +42,15 @@ def load_from_csv(members, providers, claims):
     with eng.begin() as con:
         con.execute(text("CREATE SCHEMA IF NOT EXISTS insurance;"))
         con.execute(text("TRUNCATE insurance.claim, insurance.provider, insurance.member CASCADE;"))
-        members_df.to_sql("member", con, schema="insurance", if_exists="append", index=False)
-        providers_df.to_sql("provider", con, schema="insurance", if_exists="append", index=False)
-        claims_df.to_sql("claim", con, schema="insurance", if_exists="append", index=False)
+        members_df.to_sql("member", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
+        providers_df.to_sql("provider", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
+        claims_df.to_sql("claim", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
 
     logger.info("Done loading CSVs.")
 
 
 def main(parsed_args):
+    """Entry point: dispatch to the appropriate load function based on CLI flags."""
     if parsed_args.from_csv:
         load_from_csv(parsed_args.members, parsed_args.providers, parsed_args.claims)
 

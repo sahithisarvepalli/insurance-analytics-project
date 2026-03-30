@@ -1,3 +1,5 @@
+"""Logistic regression model for identifying high-cost insurance claimants."""
+
 import os
 
 import numpy as np
@@ -12,6 +14,7 @@ from .utils import get_engine, logger
 
 
 def run_model():
+    """Train a logistic regression model to predict high-cost members and write metrics."""
     eng = get_engine()
     q = (
         "SELECT c.member_id, m.dob, m.region AS member_region, p.in_network, "

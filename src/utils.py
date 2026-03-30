@@ -1,3 +1,5 @@
+"""Database connection utilities and configuration helpers."""
+
 import logging
 import os
 import re
@@ -15,12 +17,14 @@ def _redact_url(url: str) -> str:
 
 
 def load_config(path="config/db.yaml"):
+    """Load database configuration from a YAML file, expanding ${ENV_VAR} placeholders."""
     raw = {}
     if os.path.exists(path):
         with open(path, encoding="utf-8") as fh:
             raw = yaml.safe_load(fh) or {}
 
     def expand(v):
+        """Expand a ${VAR} placeholder to its environment variable value."""
         if isinstance(v, str) and v.startswith("${") and v.endswith("}"):
             return os.getenv(v[2:-1])
         return v
@@ -29,6 +33,7 @@ def load_config(path="config/db.yaml"):
 
 
 def get_engine():
+    """Create and return a SQLAlchemy engine using environment variables or config file."""
     cfg = load_config()
     url = os.getenv("DATABASE_URL") or cfg.get("engine_url")
     if not url:
