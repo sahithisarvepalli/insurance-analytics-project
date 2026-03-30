@@ -30,7 +30,7 @@ def run_transform():
     """
 
     df = pd.read_sql(q, eng, parse_dates=["service_date", "dob", "effective_date"])
-    logger.info(f"Loaded {len(df):,} joined rows")
+    logger.info("Loaded %d joined rows", len(df))
 
     # Derivations
     today = pd.Timestamp.now().normalize()

@@ -48,7 +48,7 @@ def run_model():
     os.makedirs("outputs", exist_ok=True)
     with open("outputs/model_metrics.txt", "w", encoding="utf-8") as fh:
         fh.write(f"LogisticRegression accuracy: {score:.4f}\n")
-    logger.info(f"Model accuracy: {score:.4f}")
+    logger.info("Model accuracy: %.4f", score)
 
 
 if __name__ == "__main__":
