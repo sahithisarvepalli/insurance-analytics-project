@@ -40,3 +40,4 @@ config/local*
 # Airflow runtime logs
 airflow/logs/
 !airflow/logs/.gitkeep
+.coverage
