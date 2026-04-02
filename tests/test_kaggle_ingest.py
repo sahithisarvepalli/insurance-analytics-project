@@ -80,6 +80,12 @@ class TestApplyMapping:
         result = _apply_mapping(df, {}, {"b": lambda: [10, 20]})
         assert list(result["b"]) == [10, 20]
 
+    @pytest.mark.unit
+    def test_callable_default_accepts_length(self):
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        result = _apply_mapping(df, {}, {"b": lambda n: [0] * n})
+        assert list(result["b"]) == [0, 0, 0]
+
 
 # ────────────────────────────────────────────────────────────────────────────
 # _derive_members
@@ -263,11 +269,11 @@ class TestLoadKaggleData:
             load_kaggle_data(str(cfg_path))
 
     @pytest.mark.unit
-    def test_raises_when_claims_file_not_found(self, tmp_path):
+    def test_raises_when_claims_file_not_found(self, tmp_path, monkeypatch):
         dest_dir = tmp_path / "kaggle"
         dest_dir.mkdir()
-        # Write a dummy CSV so download is skipped, but not the expected file
-        (dest_dir / "other.csv").write_text("a,b\n1,2\n")
+        # download_dataset is a no-op so the configured claims.csv is never created
+        monkeypatch.setattr("src.kaggle_ingest.download_dataset", lambda *a, **kw: None)
         cfg_path = _write_config(tmp_path, extra_files={"claims": "claims.csv"})
         with pytest.raises(FileNotFoundError, match="claims.csv"):
             load_kaggle_data(cfg_path)
@@ -368,3 +374,108 @@ class TestLoadKaggleData:
         monkeypatch.setattr("src.kaggle_ingest.download_dataset", fake_download)
         load_kaggle_data(cfg_path)
         assert not download_called, "download_dataset should not be called when cache exists"
+
+    @pytest.mark.unit
+    def test_triggers_download_when_configured_file_absent(self, tmp_path, monkeypatch):
+        """A stale cache dir with a different CSV must still trigger a download."""
+        dest_dir = tmp_path / "kaggle"
+        dest_dir.mkdir(parents=True)
+        # Put an unrelated CSV in the cache dir — the configured claims.csv is missing
+        (dest_dir / "unrelated.csv").write_text("x\n1\n")
+        cfg_path = _write_config(tmp_path)
+
+        download_called = []
+
+        def fake_download(owner, dataset, dest):
+            download_called.append(True)
+            # Write the expected file so the subsequent read succeeds
+            _write_claims_csv(dest_dir)
+            return dest
+
+        monkeypatch.setattr("src.kaggle_ingest.download_dataset", fake_download)
+        load_kaggle_data(cfg_path)
+        assert download_called, "download_dataset should be called when configured file is absent"
+
+    @pytest.mark.unit
+    def test_fk_validation_raises_when_members_missing_member_id_column(self, tmp_path):
+        """Explicit members file without member_id column must raise ValueError."""
+        dest_dir = tmp_path / "kaggle"
+        dest_dir.mkdir(parents=True)
+        _write_claims_csv(dest_dir)
+        # members file that lacks member_id
+        members_path = dest_dir / "members.csv"
+        pd.DataFrame({"name": ["Alice"]}).to_csv(members_path, index=False)
+
+        cfg_path = _write_config(
+            tmp_path,
+            extra_files={"claims": "claims.csv", "members": "members.csv"},
+            defaults={"claims": {"member_id": 1, "provider_id": 1}},
+        )
+        with pytest.raises(ValueError, match="member_id"):
+            load_kaggle_data(cfg_path)
+
+    @pytest.mark.unit
+    def test_fk_validation_raises_when_members_have_missing_ids(self, tmp_path):
+        """Claims referencing member_ids absent from the members table must raise ValueError."""
+        dest_dir = tmp_path / "kaggle"
+        dest_dir.mkdir(parents=True)
+        # Claims reference member_ids 1 and 2
+        claims_path = dest_dir / "claims.csv"
+        pd.DataFrame(
+            {
+                "member_id": [1, 2],
+                "provider_id": [10, 10],
+                "paid_amount": [100.0, 200.0],
+            }
+        ).to_csv(claims_path, index=False)
+        # Members table only covers member_id=1
+        members_path = dest_dir / "members.csv"
+        pd.DataFrame({"member_id": [1]}).to_csv(members_path, index=False)
+
+        cfg_path = _write_config(
+            tmp_path,
+            extra_files={"claims": "claims.csv", "members": "members.csv"},
+        )
+        with pytest.raises(ValueError, match="missing member_id"):
+            load_kaggle_data(cfg_path)
+
+    @pytest.mark.unit
+    def test_fk_validation_raises_when_providers_missing_provider_id_column(self, tmp_path):
+        """Explicit providers file without provider_id column must raise ValueError."""
+        dest_dir = tmp_path / "kaggle"
+        dest_dir.mkdir(parents=True)
+        _write_claims_csv(dest_dir)
+        providers_path = dest_dir / "providers.csv"
+        pd.DataFrame({"specialty": ["PCP"]}).to_csv(providers_path, index=False)
+
+        cfg_path = _write_config(
+            tmp_path,
+            extra_files={"claims": "claims.csv", "providers": "providers.csv"},
+            defaults={"claims": {"member_id": 1, "provider_id": 1}},
+        )
+        with pytest.raises(ValueError, match="provider_id"):
+            load_kaggle_data(cfg_path)
+
+    @pytest.mark.unit
+    def test_fk_validation_raises_when_providers_have_missing_ids(self, tmp_path):
+        """Claims referencing provider_ids absent from providers table must raise ValueError."""
+        dest_dir = tmp_path / "kaggle"
+        dest_dir.mkdir(parents=True)
+        claims_path = dest_dir / "claims.csv"
+        pd.DataFrame(
+            {
+                "member_id": [1, 1],
+                "provider_id": [10, 20],
+                "paid_amount": [100.0, 200.0],
+            }
+        ).to_csv(claims_path, index=False)
+        # Providers table only covers provider_id=10
+        providers_path = dest_dir / "providers.csv"
+        pd.DataFrame({"provider_id": [10]}).to_csv(providers_path, index=False)
+
+        cfg_path = _write_config(
+            tmp_path,
+            extra_files={"claims": "claims.csv", "providers": "providers.csv"},
+        )
+        with pytest.raises(ValueError, match="missing provider_id"):
+            load_kaggle_data(cfg_path)
