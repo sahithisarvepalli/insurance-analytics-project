@@ -12,7 +12,7 @@ This skill covers all automation in the insurance analytics project: GitHub Acti
 | Component | Location | Purpose |
 |---|---|---|
 | GitHub Actions – CI | `.github/workflows/ci-postgres.yml` | Lint → test → SonarCloud on every push/PR |
-| GitHub Actions – Release | `.github/workflows/release.yml` | Publishes a release artifact |
+| GitHub Actions – Release | `.github/workflows/release.yml` | Manual workflow dispatch: bumps patch version tag and creates a GitHub Release (no build artifact is uploaded) |
 | GitHub Actions – Scheduled | `.github/workflows/scheduled-pipeline.yml` | Runs the pipeline on a schedule |
 | Airflow DAG | `airflow/dags/insurance_pipeline_dag.py` | Orchestrates the ETL end-to-end |
 | Makefile | `Makefile` | Developer task runner (local shortcuts) |
@@ -28,7 +28,7 @@ lint  →  test  →  sonarcloud
 
 ### Job 1 – `lint` (static analysis)
 
-Runs on every push/PR to `main`/`master` that touches `src/`, `tests/`, `sql/`, or config files.
+Runs on every **push** to `main`/`master` that touches `src/**`, `tests/**`, `sql/**`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml`. **Pull requests** to those branches trigger `lint` only when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are changed (`sql/**` and other config files do **not** trigger CI on PRs).
 
 Steps:
 1. `black --check` + `isort --check` – formatting
@@ -55,14 +55,14 @@ DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
 
 ### Job 3 – `sonarcloud`
 
-Downloads the test artifacts (coverage + JUnit XML) and runs SonarCloud analysis. Requires two repository secrets:
+Downloads the test artifacts (coverage + JUnit XML) and runs SonarCloud analysis. Each job requires its own secret:
 
-- `SONAR_TOKEN` – from SonarCloud
-- `CODECOV_TOKEN` – from Codecov
+- `SONAR_TOKEN` – required by **this job** (SonarCloud authentication)
+- `CODECOV_TOKEN` – required by **Job 2** only (Codecov coverage upload; not used by SonarCloud)
 
 ### Triggering CI manually
 
-Push any change to a file under `src/`, `tests/`, `sql/`, `requirements.txt`, or `pyproject.toml` on a branch targeting `main`/`master`. A pull request against those branches also triggers CI.
+Push any change to a file under `src/`, `tests/`, `sql/`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml` on a branch targeting `main`/`master`. A pull request against those branches also triggers CI when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are modified.
 
 ## Makefile: local task runner
 
@@ -93,18 +93,18 @@ make airflow-logs   # tail scheduler logs
 The DAG is defined in `airflow/dags/insurance_pipeline_dag.py` and orchestrates:
 
 ```
-ingest  →  load  →  transform  →  report
+generate_synthetic_data  →  load_csv_to_postgres  →  [run_transform_kpis, run_model]  →  run_report
 ```
 
-The `DATA_SOURCE` environment variable controls the ingest step:
-- `DATA_SOURCE=kaggle` → uses `src/kaggle_ingest.py` (downloads from Kaggle API)
-- Any other value → uses the default synthetic-data path
+| Task | Module invoked | Notes |
+|---|---|---|
+| `generate_synthetic_data` | `src.generate_synthetic` | Writes CSVs to `data/` |
+| `load_csv_to_postgres` | `src.load --from-csv` | Truncates and reloads all three tables |
+| `run_transform_kpis` | `src.transform` | Runs in parallel with `run_model` |
+| `run_model` | `src.model` | Runs in parallel with `run_transform_kpis` |
+| `run_report` | `src.report` | Runs after both transform and model complete |
 
-Kaggle credentials are read from:
-- Environment variables `KAGGLE_USERNAME` and `KAGGLE_KEY`, **or**
-- `~/.kaggle/kaggle.json`
-
-Kaggle configuration (dataset name, output path) lives in `config/kaggle.yaml`.
+The schedule defaults to daily at 06:00 UTC and can be overridden via the `AIRFLOW_PIPELINE_SCHEDULE` environment variable. The project directory is set via `AIRFLOW_PROJECT_DIR`.
 
 ### Starting Airflow locally
 
@@ -170,6 +170,4 @@ Run this locally before opening a pull request to catch issues that CI will also
 | Secret name | Used by |
 |---|---|
 | `SONAR_TOKEN` | SonarCloud scan (job 3) |
-| `CODECOV_TOKEN` | Codecov upload (job 2) |
-| `KAGGLE_USERNAME` | Kaggle ingest (Airflow / scheduled pipeline) |
-| `KAGGLE_KEY` | Kaggle ingest (Airflow / scheduled pipeline) |
+| `CODECOV_TOKEN` | Codecov coverage upload (job 2) |
