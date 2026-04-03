@@ -52,7 +52,7 @@ Add a `.gitattributes` file at the repo root:
 * text=auto eol=lf
 ```
 
-This enforces Linux-style line endings everywhere, regardless of the contributor's OS.
+This auto-detects text files and enforces Linux-style line endings everywhere, regardless of the contributor's OS.
 
 ---
 

@@ -60,7 +60,7 @@ docker run --name insurdb \
   -e POSTGRES_DB=insurdb \
   -p 5432:5432 -d postgres:15
 
-# 5. Set environment variables
+# 5. Set environment variables  (or copy .env.example → .env)
 export DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
 export KAGGLE_USERNAME=your_kaggle_username
 export KAGGLE_KEY=your_kaggle_api_key
@@ -82,8 +82,6 @@ python -m src.report --out outputs/insurance_summary.xlsx
 Copy `.env.example` → `.env` for local dev (never commit `.env`).
 
 | Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | — | Full SQLAlchemy URL (overrides all below) |
 | `DB_HOST` | `localhost` | Postgres host |
 | `DB_PORT` | `5432` | Postgres port |
 | `DB_USER` | `postgres` | Postgres user |

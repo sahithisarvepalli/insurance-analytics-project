@@ -50,7 +50,6 @@ flowchart TD
         UT["utils.py\nDB connection · config loader"]
     end
 
-    KI -->|"Kaggle API"| KI
     LD --> M & P & C
     UT -->|"shared by"| LD & TR & MO
     M & P & C --> TR & MO
