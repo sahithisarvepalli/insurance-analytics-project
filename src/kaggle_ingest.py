@@ -171,10 +171,11 @@ def _derive_members(claims_df: pd.DataFrame) -> pd.DataFrame:
     member_ids = unique_claims["member_id"].values
 
     # Derive DOB from age when available, otherwise use a fixed reference date
+    # Use 365.25 days/year to account for leap years in the conversion.
     if "age" in unique_claims.columns:
         today = pd.Timestamp.now().normalize()
         dob: pd.Series = today - pd.to_timedelta(
-            pd.to_numeric(unique_claims["age"], errors="coerce").fillna(0).astype(int) * 365,
+            pd.to_numeric(unique_claims["age"], errors="coerce").fillna(0) * 365.25,
             unit="D",
         )
     else:

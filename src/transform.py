@@ -79,17 +79,16 @@ def run_transform():
         )
         .reset_index()
     )
-    loss_ratio["loss_ratio_pct"] = loss_ratio.apply(
-        lambda r: round(r["paid_total"] / r["billed_total"] * 100, 2)
-        if r["billed_total"] > 0
-        else None,
-        axis=1,
+    billed_positive = loss_ratio["billed_total"] > 0
+    loss_ratio["loss_ratio_pct"] = (
+        (loss_ratio["paid_total"] / loss_ratio["billed_total"].where(billed_positive) * 100)
+        .where(billed_positive)
+        .round(2)
     )
-    loss_ratio["allowed_ratio_pct"] = loss_ratio.apply(
-        lambda r: round(r["allowed_total"] / r["billed_total"] * 100, 2)
-        if r["billed_total"] > 0
-        else None,
-        axis=1,
+    loss_ratio["allowed_ratio_pct"] = (
+        (loss_ratio["allowed_total"] / loss_ratio["billed_total"].where(billed_positive) * 100)
+        .where(billed_positive)
+        .round(2)
     )
 
     # Network utilization — in-network vs out-of-network claim and cost summary

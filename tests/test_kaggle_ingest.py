@@ -209,7 +209,7 @@ def test_derive_providers_uses_schema_defaults():
     """Derived providers must use deterministic schema defaults, not random values."""
     providers = _derive_providers(_sample_claims())
     assert (providers["specialty"] == "Unknown").all()
-    assert (providers["in_network"] == True).all()  # noqa: E712
+    assert providers["in_network"].all()
     assert (providers["region"] == "Unknown").all()
 
 
@@ -523,7 +523,7 @@ def test_load_kaggle_data_derived_providers_use_schema_defaults(tmp_path):
     result = load_kaggle_data(cfg_path)
     providers = result["providers"]
     assert (providers["specialty"] == "Unknown").all()
-    assert (providers["in_network"] == True).all()  # noqa: E712
+    assert providers["in_network"].all()
     assert (providers["region"] == "Unknown").all()
 
 
