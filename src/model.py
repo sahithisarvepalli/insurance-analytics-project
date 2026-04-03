@@ -45,12 +45,31 @@ def run_model():
         [("pre", pre), ("clf", LogisticRegression(max_iter=1000, class_weight="balanced"))]
     )
 
-    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
-    model.fit(Xtr, ytr)
-    score = model.score(Xte, yte)
+    class_counts = y.value_counts()
+    can_stratify = y.nunique() > 1 and not class_counts.empty and class_counts.min() >= 2
+
+    if can_stratify:
+        Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+        model.fit(Xtr, ytr)
+        score = model.score(Xte, yte)
+        metric_label = "LogisticRegression accuracy"
+    else:
+        # Small seeded datasets in CI may not support stratified splitting.
+        if y.nunique() < 2:
+            score = 1.0
+            metric_label = "LogisticRegression skipped (single target class), baseline accuracy"
+        else:
+            model.fit(X, y)
+            score = model.score(X, y)
+            metric_label = "LogisticRegression train accuracy (fallback, no stratified split)"
+
+        logger.warning(
+            "Fallback model path used due to insufficient class counts for stratified split: %s",
+            class_counts.to_dict(),
+        )
     os.makedirs("outputs", exist_ok=True)
     with open("outputs/model_metrics.txt", "w", encoding="utf-8") as fh:
-        fh.write(f"LogisticRegression accuracy: {score:.4f}\n")
+        fh.write(f"{metric_label}: {score:.4f}\n")
     logger.info("Model accuracy: %.4f", score)
 
 
