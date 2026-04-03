@@ -72,6 +72,17 @@ make db-init
 make kaggle-load
 ```
 
+#### Notebook / visualisation work
+
+Jupyter and visualisation libraries (`matplotlib`, `seaborn`, `plotly`) are intentionally
+**not** part of `requirements.txt`.  They are not used by the core pipeline and keeping
+them out of the main file keeps Docker image builds and CI runner installs significantly
+faster.  Install them on demand:
+
+```bash
+pip install -r requirements-notebooks.txt
+```
+
 Full setup guide: [docs/setup.md](docs/setup.md)
 
 ---

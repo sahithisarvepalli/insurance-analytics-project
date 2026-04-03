@@ -1,0 +1,24 @@
+# ============================================
+# Notebook & Visualization Dependencies
+# ============================================
+# Install separately when working with notebooks:
+#   pip install -r requirements-notebooks.txt
+#
+# These packages are NOT required by the core pipeline (src/),
+# CI workflows, or the Docker dev container.  They are intentionally
+# kept here so that the main requirements.txt stays lean and
+# container/runner build times stay fast.
+# ============================================
+
+# Jupyter runtime
+jupyter>=1.0.0,<2.0.0
+jupyterlab>=4.0.0,<5.0.0
+ipykernel>=6.27.0,<7.0.0
+notebook>=7.0.0,<8.0.0
+ipywidgets>=8.1.0,<9.0.0
+nbformat>=5.9.0,<6.0.0
+
+# Visualization (used in ad-hoc / exploratory notebooks only)
+matplotlib>=3.8.0,<4.0.0
+seaborn>=0.13.0,<1.0.0
+plotly>=5.18.0,<6.0.0
