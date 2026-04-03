@@ -391,9 +391,9 @@ def test_run_transform_diagnosis_summary_covers_all_codes():
     ds = captured[0]
     expected_codes = set(df["diagnosis_code"].unique())
     actual_codes = set(ds["diagnosis_code"].unique())
-    assert expected_codes == actual_codes, (
-        f"Diagnosis codes mismatch — expected {expected_codes}, got {actual_codes}"
-    )
+    assert (
+        expected_codes == actual_codes
+    ), f"Diagnosis codes mismatch — expected {expected_codes}, got {actual_codes}"
 
 
 @pytest.mark.unit

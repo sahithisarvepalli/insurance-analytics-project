@@ -181,12 +181,8 @@ def _derive_members(claims_df: pd.DataFrame) -> pd.DataFrame:
     else:
         dob = pd.Series([pd.NaT] * len(unique_claims))
 
-    gender = (
-        unique_claims["gender"].values if "gender" in unique_claims.columns else "U"
-    )
-    region = (
-        unique_claims["region"].values if "region" in unique_claims.columns else "Unknown"
-    )
+    gender = unique_claims["gender"].values if "gender" in unique_claims.columns else "U"
+    region = unique_claims["region"].values if "region" in unique_claims.columns else "Unknown"
 
     return pd.DataFrame(
         {

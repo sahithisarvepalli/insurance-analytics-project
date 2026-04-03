@@ -102,9 +102,7 @@ def run_transform():
         .reset_index()
     )
     total_claims = network_summary["claims"].sum()
-    network_summary["utilization_pct"] = (
-        network_summary["claims"] / total_claims * 100
-    ).round(2)
+    network_summary["utilization_pct"] = (network_summary["claims"] / total_claims * 100).round(2)
 
     # Diagnosis summary — claims and costs by ICD diagnosis code
     diagnosis_summary = (

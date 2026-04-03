@@ -26,11 +26,24 @@ def _read_output(filename: str) -> pd.DataFrame | None:
     return pd.read_csv(path) if os.path.exists(path) else None
 
 
-_REQUIRED_KPI_COLUMNS = {"age_band", "member_region", "in_network", "claims", "paid_total", "paid_avg"}
+_REQUIRED_KPI_COLUMNS = {
+    "age_band",
+    "member_region",
+    "in_network",
+    "claims",
+    "paid_total",
+    "paid_avg",
+}
 _REQUIRED_MONTHLY_COLUMNS = {"month", "member_region", "in_network", "claims", "paid_total"}
 _REQUIRED_LOSS_RATIO_COLUMNS = {
-    "member_region", "in_network", "claims", "billed_total",
-    "allowed_total", "paid_total", "loss_ratio_pct", "allowed_ratio_pct",
+    "member_region",
+    "in_network",
+    "claims",
+    "billed_total",
+    "allowed_total",
+    "paid_total",
+    "loss_ratio_pct",
+    "allowed_ratio_pct",
 }
 _REQUIRED_NETWORK_COLUMNS = {"in_network", "claims", "paid_total", "paid_avg", "utilization_pct"}
 _REQUIRED_DIAGNOSIS_COLUMNS = {"diagnosis_code", "claims", "paid_total", "paid_avg", "billed_total"}
@@ -70,9 +83,7 @@ def validate_diagnosis_summary(df: pd.DataFrame) -> None:
     """Raise ValueError if the diagnosis summary DataFrame is missing required columns."""
     missing = _REQUIRED_DIAGNOSIS_COLUMNS - set(df.columns)
     if missing:
-        raise ValueError(
-            f"Diagnosis summary output is missing required columns: {sorted(missing)}"
-        )
+        raise ValueError(f"Diagnosis summary output is missing required columns: {sorted(missing)}")
 
 
 def main(out):
@@ -122,9 +133,9 @@ def main(out):
             )
             sheets_written += 1
         if sheets_written == 0:
-            pd.DataFrame({"status": ["No output data available. Run the pipeline first."]}).to_excel(
-                xl, sheet_name="Summary", index=False
-            )
+            pd.DataFrame(
+                {"status": ["No output data available. Run the pipeline first."]}
+            ).to_excel(xl, sheet_name="Summary", index=False)
     print("Wrote", out)
 
 
