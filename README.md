@@ -15,13 +15,12 @@ End-to-end insurance analytics platform built with Python + PostgreSQL. A SAS/DB
 ## Pipeline
 
 ```
-generate_synthetic → load (CSV → PG) → transform (KPIs) → model (ML) → report (Excel)
+kaggle_ingest → transform (KPIs) → model (ML) → report (Excel)
 ```
 
 | Step | Module | SAS Equivalent |
 |------|--------|---------------|
-| Synthetic data | `src/generate_synthetic.py` | `PROC SURVEYSELECT` / `PROC SQL RAND()` |
-| Load | `src/load.py` | `PROC IMPORT` / `LIBNAME` engine |
+| Kaggle ingest | `src/kaggle_ingest.py` + `src/load.py` | `PROC IMPORT` / `LIBNAME` engine |
 | KPI aggregation | `src/transform.py` | `PROC MEANS` / `PROC SQL GROUP BY` |
 | ML model | `src/model.py` | `PROC LOGISTIC` |
 | Excel report | `src/report.py` | `ODS Excel` |
@@ -42,11 +41,8 @@ Open this repository in VS Code and choose **Reopen in Container**. The dev cont
 Once inside the container, run the pipeline directly — no virtual environment or Docker commands needed:
 
 ```bash
-# Generate synthetic CSV data
-make data-gen
-
-# Load CSVs into PostgreSQL
-make load-data
+# Download Kaggle dataset and load into PostgreSQL
+make kaggle-load
 
 # Run the full pipeline
 python -m src.transform
@@ -56,6 +52,7 @@ python -m src.report --out outputs/insurance_summary.xlsx
 
 > **Note:** `DATABASE_URL` is pre-set to `postgresql://postgres:postgres@db:5432/insurdb`.
 > The database host is `db` (the Docker Compose service name), not `localhost`.
+> Kaggle credentials (`KAGGLE_USERNAME` / `KAGGLE_KEY`) must be set — see [docs/setup.md](docs/setup.md).
 
 ### Local setup (outside dev container)
 
@@ -67,8 +64,12 @@ pip install -r requirements.txt && pip install -e .
 # Start PostgreSQL separately, then export the connection URL
 export DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
 
+# Export Kaggle credentials
+export KAGGLE_USERNAME=your_kaggle_username
+export KAGGLE_KEY=your_kaggle_api_key
+
 make db-init
-make data-gen && make load-data
+make kaggle-load
 ```
 
 Full setup guide: [docs/setup.md](docs/setup.md)
@@ -79,15 +80,15 @@ Full setup guide: [docs/setup.md](docs/setup.md)
 
 | Command | Description |
 |---------|-------------|
-| `make setup` | Full init (db + data) |
+| `make setup` | Full init (db + Kaggle data) |
 | `make test` | pytest with coverage |
-| `make lint` | flake8 + pylint |
-| `make format` | black + isort |
+| `make lint` | flake8 + pylint + ruff |
+| `make format` | black + isort + ruff format |
 | `make check-types` | mypy |
-| `make quality` | bandit + radon |
+| `make quality` | bandit + radon + xenon |
 | `make check` | All of the above |
 | `make run-jupyterlab` | JupyterLab on :8888 |
-| `make data-gen` | Regenerate synthetic CSVs |
+| `make kaggle-load` | Download Kaggle dataset and load into DB |
 | `make db-reset` | Drop + recreate schema |
 | `make airflow-up` | Start Airflow (UI on :8080) |
 | `make airflow-down` | Stop Airflow |
@@ -103,12 +104,14 @@ Run `make help` for the full list.
 src/            Production source — ETL, ML, reporting
 tests/          Integration tests (pytest + live PostgreSQL)
 sql/            DDL schema and KPI query templates
-data/           Synthetic CSV files
-outputs/        Generated reports and metrics
+data/           Kaggle-sourced data (cached in data/kaggle/)
+outputs/        Generated reports and metrics (kpis.csv, monthly.csv, loss_ratio.csv,
+                network_summary.csv, diagnosis_summary.csv, model_metrics.txt, *.xlsx)
 notebooks/      Jupyter exploration and visualisation
 concepts/       11 standalone Python learning modules
 sas-python-examples/  SAS ↔ Python reference translations
 docs/           Detailed guides (setup, architecture, quality, git)
+config/         Database and Kaggle dataset configuration (db.yaml, kaggle.yaml)
 ```
 
 ---

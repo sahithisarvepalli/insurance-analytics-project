@@ -146,7 +146,7 @@ You'll see the DAG **`insurance_analytics_pipeline`** listed.
 1. Click the DAG name to open it.
 2. Click the **▶ Trigger DAG** button (top right).
 3. Watch the tasks go green one by one:
-   `generate_synthetic_data → load_csv_to_postgres → run_transform_kpis + run_ml_model → generate_excel_report`
+   `kaggle_ingest → [run_transform_kpis, run_ml_model] → generate_excel_report`
 4. Click any task → **Log** to see stdout/stderr.
 
 #### F. Stop Airflow
@@ -191,18 +191,16 @@ in GitHub's cloud. It is completely independent of Airflow.
 - **Trigger**: cron `30 6 * * *` (daily 06:30 UTC) **+ manual** via the
   "Run workflow" button on the Actions tab.
 - **Environment**: spins up a fresh `postgres:15` service container, installs
-  deps, runs all 5 pipeline steps, and uploads outputs as a build artifact.
-- **No secrets needed**: the workflow uses the same public Postgres credentials
-  already in the repo — everything runs inside the ephemeral GitHub runner.
+  deps, ingests data from Kaggle, runs all pipeline steps, and uploads outputs as a build artifact.
+- **Kaggle credentials required**: add `KAGGLE_USERNAME` and `KAGGLE_KEY` as
+  repository secrets (Settings → Secrets and variables → Actions).
 
 ### How to enable / configure
 
-1. **Push** the new workflow file to `main`:
-   ```bash
-   git add .github/workflows/scheduled-pipeline.yml
-   git commit -m "feat: add scheduled pipeline workflow"
-   git push
-   ```
+1. Add Kaggle secrets to your repository:
+   - Go to **GitHub → your repo → Settings → Secrets and variables → Actions**
+   - Add `KAGGLE_USERNAME` (your Kaggle username)
+   - Add `KAGGLE_KEY` (your Kaggle API key from kaggle.com → Account → API → Create New Token)
 2. Go to **GitHub → your repo → Actions** tab.
    You'll see "Scheduled Pipeline" listed.
 3. Click **Run workflow** to trigger it manually the first time.
@@ -214,6 +212,9 @@ After each run, go to the workflow run page → **Artifacts** section →
 download `pipeline-outputs-<run_number>`.  It contains:
 - `kpis.csv`
 - `monthly.csv`
+- `loss_ratio.csv`
+- `network_summary.csv`
+- `diagnosis_summary.csv`
 - `model_metrics.txt`
 - `insurance_summary.xlsx`
 
@@ -235,13 +236,19 @@ download `pipeline-outputs-<run_number>`.  It contains:
 | Analytics Postgres | `DATABASE_URL` | `postgres:postgres@db:5432/insurdb` | Dev-only — fine to hardcode |
 | Airflow Postgres | `docker-compose-airflow.yml` | `airflow:airflow@airflow-postgres:5432/airflow` | Airflow-internal — no sensitive data |
 | Airflow UI login | browser | `admin` / `admin` | Local dev only |
+| `KAGGLE_USERNAME` | Airflow DAG, Makefile | Kaggle account username | **Yes — set as env var or store in Airflow Variables** |
+| `KAGGLE_KEY` | Airflow DAG, Makefile | Kaggle API key | **Yes — never commit; use env var or `~/.kaggle/kaggle.json`** |
 | `SONAR_TOKEN` | GitHub Actions CI | Stored in repo Settings → Secrets | **Yes — never commit** |
 | `CODECOV_TOKEN` | GitHub Actions CI | Stored in repo Settings → Secrets | **Yes — never commit** |
 
 ### Do I need to add any new secrets for the scheduled pipeline?
 
-**No.** The scheduled pipeline workflow uses only the Postgres credentials
-already in the workflow file.  No external API tokens are required.
+**Yes — Kaggle credentials are required.**  Add them in **GitHub → your repo → Settings → Secrets and variables → Actions**:
+
+| Secret name | Where to get it |
+|-------------|----------------|
+| `KAGGLE_USERNAME` | Your Kaggle username |
+| `KAGGLE_KEY` | Kaggle account → Settings → API → Create New Token |
 
 ### For production deployment (later)
 

@@ -42,10 +42,9 @@ Steps:
 Spins up a **PostgreSQL 15 service container** (`POSTGRES_USER=postgres`, `POSTGRES_DB=insurdb`), then:
 
 1. Applies the DDL (`sql/ddl_create_tables.sql`)
-2. Generates synthetic data (`src.generate_synthetic`)
-3. Loads data (`src.load`)
-4. Runs the transform (`src.transform`)
-5. Runs pytest with `--cov` and uploads coverage to Codecov
+2. Seeds data directly via inline SQL INSERT statements
+3. Runs the transform (`src.transform`)
+4. Runs pytest with `--cov` and uploads coverage to Codecov
 
 Key environment variable set by the workflow:
 
@@ -79,9 +78,8 @@ make check          # lint + check-types + test + quality (full gate)
 
 make db-init        # apply sql/ddl_create_tables.sql
 make db-reset       # DROP SCHEMA + re-apply DDL
-make data-gen       # generate synthetic CSVs into data/
-make load-data      # load CSVs into PostgreSQL
-make setup          # install + db-init + data-gen + load-data (full first-time setup)
+make kaggle-load    # download Kaggle dataset and load into PostgreSQL
+make setup          # install + db-init + kaggle-load (full first-time setup)
 
 make airflow-up     # start Airflow via Docker Compose (port 8080)
 make airflow-down   # stop Airflow
@@ -93,16 +91,15 @@ make airflow-logs   # tail scheduler logs
 The DAG is defined in `airflow/dags/insurance_pipeline_dag.py` and orchestrates:
 
 ```
-generate_synthetic_data  →  load_csv_to_postgres  →  [run_transform_kpis, run_model]  →  run_report
+kaggle_ingest  →  [run_transform_kpis, run_ml_model]  →  generate_excel_report
 ```
 
 | Task | Module invoked | Notes |
 |---|---|---|
-| `generate_synthetic_data` | `src.generate_synthetic` | Writes CSVs to `data/` |
-| `load_csv_to_postgres` | `src.load --from-csv` | Truncates and reloads all three tables |
-| `run_transform_kpis` | `src.transform` | Runs in parallel with `run_model` |
-| `run_model` | `src.model` | Runs in parallel with `run_transform_kpis` |
-| `run_report` | `src.report` | Runs after both transform and model complete |
+| `kaggle_ingest` | `src.load --kaggle-config` | Downloads dataset from Kaggle and loads into DB; requires `KAGGLE_USERNAME` + `KAGGLE_KEY` env vars |
+| `run_transform_kpis` | `src.transform` | Runs in parallel with `run_ml_model` |
+| `run_ml_model` | `src.model` | Runs in parallel with `run_transform_kpis` |
+| `generate_excel_report` | `src.report` | Runs after both transform and model complete |
 
 The schedule defaults to daily at 06:00 UTC and can be overridden via the `AIRFLOW_PIPELINE_SCHEDULE` environment variable. The project directory is set via `AIRFLOW_PROJECT_DIR`.
 
@@ -171,3 +168,5 @@ Run this locally before opening a pull request to catch issues that CI will also
 |---|---|
 | `SONAR_TOKEN` | SonarCloud scan (job 3) |
 | `CODECOV_TOKEN` | Codecov coverage upload (job 2) |
+| `KAGGLE_USERNAME` | Scheduled pipeline — Kaggle dataset ingest |
+| `KAGGLE_KEY` | Scheduled pipeline — Kaggle dataset ingest |
