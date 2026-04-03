@@ -148,6 +148,7 @@ def _write_workbook(
         pd.DataFrame({"status": ["No output data available. Run the pipeline first."]}).to_excel(
             xl, sheet_name="Summary", index=False
         )
+        sheets_written += 1
     return sheets_written
 
 

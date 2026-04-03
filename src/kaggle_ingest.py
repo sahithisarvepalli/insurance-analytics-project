@@ -310,7 +310,7 @@ def _ensure_claims_keys(result: dict[str, pd.DataFrame]) -> dict[str, pd.DataFra
 
 
 def _validate_member_fk(result: dict[str, pd.DataFrame]) -> None:
-    """Raise ``ValueError`` if the members table has member_id values missing from claims."""
+    """Raise ``ValueError`` if claims references member_id values missing from members."""
     members_df = result["members"]
     if "member_id" not in members_df.columns:
         raise ValueError(
@@ -332,7 +332,7 @@ def _validate_member_fk(result: dict[str, pd.DataFrame]) -> None:
 
 
 def _validate_provider_fk(result: dict[str, pd.DataFrame]) -> None:
-    """Raise ``ValueError`` if the providers table has provider_id values missing from claims."""
+    """Raise ``ValueError`` if claims references provider_id values missing from providers."""
     providers_df = result["providers"]
     if "provider_id" not in providers_df.columns:
         raise ValueError(
