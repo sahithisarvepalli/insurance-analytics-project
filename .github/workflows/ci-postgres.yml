@@ -6,7 +6,7 @@ on:
     paths:
       - "src/**"
       - "tests/**"
-      - "sql/**"
+      - "src/sql/**"
       - "requirements.txt"
       - "pyproject.toml"
       - "sonar-project.properties"
@@ -57,8 +57,8 @@ jobs:
           radon cc src -a -nb
           radon mi src -nb
 
-  # ── JOB 2: Database Integration Tests ───────────────────────────────────────
-  test:
+  # ── JOB 2: ETL Smoke Test ────────────────────────────────────────────────────
+  etl:
     needs: lint
     uses: ./.github/workflows/run-pipeline.yml
     with:
@@ -67,10 +67,11 @@ jobs:
     secrets: inherit
 
   # ── JOB 2b: Collect coverage & upload ────────────────────────────────────────
-  # Runs after the reusable pipeline job; seeds already applied, DB is live.
+  # Each job gets a fresh runner, so this job spins up its own Postgres service
+  # and re-seeds the database before running tests.
   coverage:
     runs-on: ubuntu-latest
-    needs: test
+    needs: etl
     env:
       DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
       PYTHONPATH: ${{ github.workspace }}

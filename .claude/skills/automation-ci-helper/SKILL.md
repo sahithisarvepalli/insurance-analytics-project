@@ -25,12 +25,12 @@ This skill covers all automation in the insurance analytics project: GitHub Acti
 The CI workflow has **three sequential jobs**:
 
 ```
-lint  →  test  →  sonarcloud
+lint  →  etl  →  sonarcloud
 ```
 
 ### Job 1 – `lint` (static analysis)
 
-Runs on every **push** to `main`/`master` that touches `src/**`, `tests/**`, `sql/**`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml`. **Pull requests** to those branches trigger `lint` only when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are changed (`sql/**` and other config files do **not** trigger CI on PRs).
+Runs on every **push** to `main`/`master` that touches `src/**`, `tests/**`, `src/sql/**`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml`. **Pull requests** to those branches trigger `lint` only when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are changed (`src/sql/**` and other config files do **not** trigger CI on PRs).
 
 Steps:
 1. `black --check` + `isort --check` – formatting
@@ -39,7 +39,7 @@ Steps:
 4. `bandit -r src` – security scan
 5. `radon cc` + `radon mi` – cyclomatic complexity and maintainability index
 
-### Job 2 – `test` (integration tests with PostgreSQL)
+### Job 2 – `etl` (ETL smoke test with PostgreSQL)
 
 The project now centralises the integration pipeline in a reusable workflow: `.github/workflows/run-pipeline.yml`.
 
@@ -48,7 +48,7 @@ Key points:
 - The reusable workflow owns the **Postgres 15 service** and offers two modes via inputs:
 	- `seed-db: true` — initialise and seed the DB with stable fixtures (used by CI tests)
 	- `seed-db: false` — run a live Kaggle ingest via `src.load` (used by the scheduled run)
-- Schema application is no longer performed with runner `psql -f ...` in multiple places; the loader/seed script executes the canonical DDL (`sql/ddl_create_tables.sql`) via the same Python helper (`_apply_ddl()`), so CI and scheduled runs share the exact schema logic.
+- Schema application is no longer performed with runner `psql -f ...` in multiple places; the loader/seed script executes the canonical DDL (`src/sql/ddl_create_tables.sql`) via the same Python helper (`_apply_ddl()`), so CI and scheduled runs share the exact schema logic.
 - The test flow (CI) typically calls the reusable workflow with `seed-db: true`, runs the ETL steps, and then a dedicated coverage job collects and uploads coverage artifacts.
 
 Key environment variable set by the workflow:
@@ -68,7 +68,7 @@ Secrets used:
 
 ### Triggering CI manually
 
-Push any change to a file under `src/`, `tests/`, `sql/`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml` on a branch targeting `main`/`master`. A pull request against those branches also triggers CI when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are modified.
+Push any change to a file under `src/`, `tests/`, `src/sql/`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml` on a branch targeting `main`/`master`. A pull request against those branches also triggers CI when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are modified.
 
 Note: because the ETL and service logic are now in a reusable workflow, changes to the pipeline are tested more consistently across CI and scheduled runs.
 
@@ -85,7 +85,7 @@ make check-types    # mypy --strict
 make quality        # bandit + radon + xenon + cohesion + vulture
 make check          # lint + check-types + test + quality (full gate)
 
-make db-init        # apply sql/ddl_create_tables.sql
+make db-init        # apply src/sql/ddl_create_tables.sql
 make db-reset       # DROP SCHEMA + re-apply DDL
 make kaggle-load    # download Kaggle dataset and load into PostgreSQL
 make setup          # install + db-init + kaggle-load (full first-time setup)
@@ -184,5 +184,5 @@ Prefer adding new behaviour as a composite action or to the reusable workflow so
 
 Additional notes:
 
-- The canonical DDL remains in `sql/ddl_create_tables.sql`. The Python helpers `_apply_ddl()` and `_table_columns()` (in `src.load`) are the preferred way to apply and reflect the schema programmatically; the seed script `.github/scripts/seed_test_db.py` reuses them.
+- The canonical DDL lives in `src/sql/ddl_create_tables.sql` (loaded via `importlib.resources` in `src.load`). The Python helpers `_apply_ddl()` and `_table_columns()` (in `src.load`) are the preferred way to apply and reflect the schema programmatically; the seed script `.github/scripts/seed_test_db.py` reuses them.
 - Test and coverage artifacts are written to `build/reports/` by default (`junit-report.xml`, `coverage.xml`, `htmlcov/`). Update `pyproject.toml` / `Makefile` if you need a different location.
