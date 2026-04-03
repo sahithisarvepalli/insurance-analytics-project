@@ -115,11 +115,22 @@ jobs:
 
       - name: Seed data
         run: |
-          python -m src.generate_synthetic --rows-members 2000 --rows-providers 300 --rows-claims 5000 --out-dir data/
-          python -m src.load --from-csv \
-            --members data/sample_members.csv \
-            --providers data/sample_providers.csv \
-            --claims data/sample_claims.csv
+          psql "postgresql://postgres:postgres@localhost:5432/insurdb" <<'SQL'
+          INSERT INTO insurance.member (person_id, dob, gender, region, effective_date)
+          VALUES (1, '1980-01-15', 'M', 'Northeast', '2020-01-01'),
+                 (2, '1975-06-20', 'F', 'Southeast', '2019-03-01'),
+                 (3, '1990-11-05', 'M', 'West',      '2021-07-01');
+          INSERT INTO insurance.provider (specialty, in_network, region)
+          VALUES ('General Practice', true,  'Northeast'),
+                 ('Cardiology',       false, 'Southeast'),
+                 ('Orthopedics',      true,  'West');
+          INSERT INTO insurance.claim
+            (member_id, provider_id, service_date, diagnosis_code,
+             procedure_code, billed_amount, allowed_amount, paid_amount, place_of_service)
+          VALUES (1, 1, '2023-03-10', 'E11.9',  '99213', 200.00, 160.00, 128.00, 'Office'),
+                 (2, 2, '2023-05-22', 'I10',    '93000', 500.00, 350.00, 280.00, 'Outpatient'),
+                 (3, 3, '2023-08-14', 'M54.5',  '27447', 800.00, 600.00, 480.00, 'Office');
+          SQL
 
       - name: Run transforms & tests
         run: |
