@@ -60,9 +60,7 @@ with DAG(
     kaggle_ingest = BashOperator(
         task_id="kaggle_ingest",
         bash_command=(
-            f"cd {PROJECT_DIR} && "
-            "python -m src.load "
-            f"--kaggle-config {KAGGLE_CONFIG}"
+            f"cd {PROJECT_DIR} && " "python -m src.load " f"--kaggle-config {KAGGLE_CONFIG}"
         ),
         env={
             **TASK_ENV,
@@ -86,11 +84,9 @@ with DAG(
     report = BashOperator(
         task_id="generate_excel_report",
         bash_command=(
-            f"cd {PROJECT_DIR} && "
-            "python -m src.report --out outputs/insurance_summary.xlsx"
+            f"cd {PROJECT_DIR} && " "python -m src.report --out outputs/insurance_summary.xlsx"
         ),
         env=TASK_ENV,
     )
 
     kaggle_ingest >> [transform, model] >> report  # pylint: disable=pointless-statement
-

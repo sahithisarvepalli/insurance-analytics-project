@@ -10,72 +10,9 @@ on:
 
 jobs:
   pipeline:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:15
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: insurdb
-        options: >-
-          --health-cmd="pg_isready -U postgres -d insurdb"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
-    env:
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
-      PYTHONPATH: ${{ github.workspace }}
-      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
-      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -e .
-
-      # ── 1. Ingest from Kaggle (requires KAGGLE_USERNAME + KAGGLE_KEY secrets)
-      # src.load drops and recreates the insurance schema from sql/ddl_create_tables.sql
-      # before inserting — no separate psql init step needed.
-      - name: Ingest Kaggle dataset
-        run: python -m src.load --kaggle-config config/kaggle.yaml
-
-      # ── 2. Transform (KPIs) ------------------------------------------------
-      - name: Run transform / KPI aggregation
-        run: python -m src.transform
-
-      # ── 3. ML model --------------------------------------------------------
-      - name: Run ML model
-        run: python -m src.model
-
-      # ── 4. Report -----------------------------------------------------------
-      - name: Generate Excel report
-        run: python -m src.report --out outputs/insurance_summary.xlsx
-
-      # ── 5. Upload outputs as build artifact ---------------------------------
-      - name: Upload pipeline outputs
-        uses: actions/upload-artifact@v4
-        with:
-          name: pipeline-outputs-${{ github.run_number }}
-          path: |
-            outputs/kpis.csv
-            outputs/monthly.csv
-            outputs/loss_ratio.csv
-            outputs/network_summary.csv
-            outputs/diagnosis_summary.csv
-            outputs/model_metrics.txt
-            outputs/insurance_summary.xlsx
-          retention-days: 30
+    uses: ./.github/workflows/run-pipeline.yml
+    with:
+      seed-db: false # live Kaggle ingest
+      upload-outputs: true
+      artifact-retention-days: 30
+    secrets: inherit
