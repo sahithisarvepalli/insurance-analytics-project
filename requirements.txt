@@ -42,3 +42,11 @@ radon>=6.0.0,<7.0.0
 pylint>=3.0.0,<4.0.0
 pre-commit>=3.6.0,<4.0.0
 docformatter>=1.7.0,<2.0.0
+
+# Used by `make quality` (cohesion -d src, vulture src, xenon src),
+# `make security` (safety check), and `make docs` / check-quality.sh (pydocstyle src)
+safety>=2.3.0,<3.0.0
+vulture>=2.10,<3.0.0
+xenon>=0.9.0,<1.0.0
+cohesion>=1.0.0,<2.0.0
+pydocstyle>=6.3.0,<7.0.0
