@@ -53,22 +53,23 @@ def load_from_kaggle(config_path: str = "config/kaggle.yaml") -> None:
     claims_df = dfs["claims"]
 
     eng = get_engine()
+
+    # Apply DDL and reflect column names in one transaction.
+    # pandas 2.x to_sql() requires an Engine (not a Connection), so column
+    # trimming is done here and the inserts run against the engine directly.
     with eng.begin() as con:
         _apply_ddl(con)
+        member_cols = _table_columns(con, "member")
+        provider_cols = _table_columns(con, "provider")
+        claim_cols = _table_columns(con, "claim")
 
-        # Reflect column names inside the same transaction — trims any source columns
-        # not declared by the table.
-        members_df = members_df[
-            [c for c in _table_columns(con, "member") if c in members_df.columns]
-        ]
-        providers_df = providers_df[
-            [c for c in _table_columns(con, "provider") if c in providers_df.columns]
-        ]
-        claims_df = claims_df[[c for c in _table_columns(con, "claim") if c in claims_df.columns]]
+    members_df = members_df[[c for c in member_cols if c in members_df.columns]]
+    providers_df = providers_df[[c for c in provider_cols if c in providers_df.columns]]
+    claims_df = claims_df[[c for c in claim_cols if c in claims_df.columns]]
 
-        members_df.to_sql("member", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
-        providers_df.to_sql("provider", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
-        claims_df.to_sql("claim", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
+    members_df.to_sql("member", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
+    providers_df.to_sql("provider", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
+    claims_df.to_sql("claim", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
 
     logger.info("Done loading Kaggle data.")
 

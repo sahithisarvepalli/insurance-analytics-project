@@ -1,4 +1,4 @@
-.PHONY: help install clean test lint format check-types check run-jupyter run-jupyterlab db-init db-reset kaggle-load setup quality security complexity docs pre-commit airflow-up airflow-down airflow-logs
+.PHONY: help install clean test lint format check-types check run-jupyter run-jupyterlab db-init db-reset kaggle-load setup dw-load quality security complexity docs pre-commit airflow-up airflow-down airflow-logs
 
 help:
 	@echo "📊 Insurance Analytics - Production Grade Monorepo"
@@ -23,6 +23,7 @@ help:
 	@echo "  make db-reset       - Reset database"
 	@echo "  make kaggle-load    - Download Kaggle dataset and load into database"
 	@echo "  make setup          - Full setup (db + kaggle data)"
+	@echo "  make dw-load        - Load DuckDB data warehouse (outputs/insurance_dw.duckdb)"
 	@echo "  make airflow-up     - Start Airflow stack (webserver + scheduler)"
 	@echo "  make airflow-down   - Stop Airflow stack"
 	@echo "  make airflow-logs   - Tail Airflow scheduler logs"
@@ -144,6 +145,11 @@ kaggle-load:
 
 setup: install db-init kaggle-load
 	@echo "✅ Full setup complete!"
+
+dw-load:
+	@echo "🏛️  Loading DuckDB data warehouse..."
+	python -m src.dw_load
+	@echo "✅ DW loaded → outputs/insurance_dw.duckdb"
 
 airflow-up:
 	@echo "🚀 Starting Airflow (webserver on http://localhost:8080)..."
