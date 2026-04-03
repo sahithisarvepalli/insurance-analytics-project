@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS insurance.member (
   member_id BIGSERIAL PRIMARY KEY,
   person_id BIGINT,
   dob DATE,
-  gender VARCHAR(1),
+  gender VARCHAR(10),
   region VARCHAR(50),
   effective_date DATE,
   termination_date DATE
