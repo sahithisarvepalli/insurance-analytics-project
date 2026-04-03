@@ -7,8 +7,8 @@
 ## 🗺️ What Is This Project?
 
 ```
-Raw insurance data  →  Clean DB tables  →  KPI reports  →  ML predictions  →  Excel workbook
-     (Kaggle)            (PostgreSQL)        (5 CSVs)        (logistic reg.)     (6 sheets)
+Raw insurance data  →  Clean DB tables  →  KPI reports  →  ML predictions  →  DW warehouse  →  Excel workbook
+     (Kaggle)            (PostgreSQL)        (5 CSVs)        (logistic reg.)    (DuckDB)          (6 sheets)
 ```
 
 It's an **end-to-end data pipeline** that shows how real-world analytics workflows are built with Python — the same patterns used in production at insurance and healthcare companies.
@@ -49,8 +49,10 @@ docs/
 
 | Concept | What it means here |
 |---------|-------------------|
-| **ETL** | Extract (Kaggle download) → Transform (KPIs) → Load (PostgreSQL) |
-| **Star Schema** | Claims table linked to member & provider dimension tables |
+| **EtLT** | Hybrid pattern: light column-mapping ETL in `kaggle_ingest` to enforce schema, then ELT (load first, transform in-system) for KPIs, ML, and DW loading |
+| **ETL** | Extract → Transform → Load: what `kaggle_ingest.py` does — maps Kaggle columns *before* writing to PostgreSQL |
+| **ELT** | Extract → Load → Transform: what `transform.py`, `model.py`, and `dw_load.py` do — data is loaded into PostgreSQL first, then queried and aggregated |
+| **Star Schema** | Claims table (fact) linked to member & provider dimension tables — used in both PostgreSQL staging and the DuckDB warehouse |
 | **KPI** | Key Performance Indicator — aggregated business metric (e.g. loss ratio) |
 | **Loss Ratio** | `paid_amount / billed_amount` — how much of what was billed actually got paid |
 | **ML Classification** | Predicting which members will be "high-cost" based on their claim history |
@@ -75,9 +77,10 @@ make airflow-up     # start Airflow UI at http://localhost:8080
 
 ```mermaid
 flowchart LR
-    K["📥 Kaggle\nIngest"] --> D["🗄️ PostgreSQL\nDB"]
-    D --> T["🔧 Transform\nKPIs + Trends"]
-    D --> M["🤖 ML Model\nHigh-cost prediction"]
-    T --> R["📊 Excel\nReport"]
-    M --> R
+    K["📥 Kaggle\nIngest\n(light ETL)"] --> D["🗄️ PostgreSQL\nDB"]
+    D --> T["🔧 Transform\nKPIs + Trends\n(ELT)"]
+    D --> M["🤖 ML Model\nHigh-cost prediction\n(ELT)"]
+    T --> DW["🏛️ DW Load\nDuckDB warehouse\n(ELT)"]
+    M --> DW
+    DW --> R["📊 Excel\nReport"]
 ```

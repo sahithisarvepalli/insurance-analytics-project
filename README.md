@@ -8,21 +8,24 @@
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-End-to-end insurance analytics platform built with Python + PostgreSQL. A SAS/DB2 practitioner's sandbox for production-quality Python — ETL pipelines, KPI aggregation, ML modeling, and Excel reporting over synthetic claims data.
+End-to-end insurance analytics platform built with Python + PostgreSQL. A SAS/DB2 practitioner's sandbox for production-quality Python — EtLT pipelines, KPI aggregation, ML modeling, DuckDB data warehouse, and Excel reporting over synthetic claims data.
 
 ---
 
 ## Pipeline
 
 ```
-kaggle_ingest → transform (KPIs) → model (ML) → report (Excel)
+kaggle_ingest → [transform, model] → dw_load → report (Excel)
 ```
+
+> **Pattern:** This project uses a hybrid **EtLT** approach. `kaggle_ingest` does light column-mapping ETL before writing to PostgreSQL. Everything downstream — `transform`, `model`, and `dw_load` — follows ELT: raw data loads first, then transformations run inside the system.
 
 | Step | Module | SAS Equivalent |
 |------|--------|---------------|
-| Kaggle ingest | `src/kaggle_ingest.py` + `src/load.py` | `PROC IMPORT` / `LIBNAME` engine |
-| KPI aggregation | `src/transform.py` | `PROC MEANS` / `PROC SQL GROUP BY` |
-| ML model | `src/model.py` | `PROC LOGISTIC` |
+| Kaggle ingest (light ETL) | `src/kaggle_ingest.py` + `src/load.py` | `PROC IMPORT` / `LIBNAME` engine |
+| KPI aggregation (ELT) | `src/transform.py` | `PROC MEANS` / `PROC SQL GROUP BY` |
+| ML model (ELT) | `src/model.py` | `PROC LOGISTIC` |
+| DW load — star schema (ELT) | `src/dw_load.py` | `PROC DATASETS` + summary tables |
 | Excel report | `src/report.py` | `ODS Excel` |
 
 ---
@@ -47,6 +50,7 @@ make kaggle-load
 # Run the full pipeline
 python -m src.transform
 python -m src.model
+python -m src.dw_load      # build the DuckDB star-schema warehouse
 python -m src.report --out outputs/insurance_summary.xlsx
 ```
 
@@ -112,12 +116,13 @@ Run `make help` for the full list.
 ## Repository Structure
 
 ```
-src/            Production source — ETL, ML, reporting
+src/            Production source — EtLT pipeline, ML, reporting, DW load
 tests/          Integration tests (pytest + live PostgreSQL)
 sql/            DDL schema and KPI query templates
 data/           Kaggle-sourced data (cached in data/kaggle/)
 outputs/        Generated reports and metrics (kpis.csv, monthly.csv, loss_ratio.csv,
-                network_summary.csv, diagnosis_summary.csv, model_metrics.txt, *.xlsx)
+                network_summary.csv, diagnosis_summary.csv, model_metrics.txt,
+                insurance_dw.duckdb, *.xlsx)
 notebooks/      Jupyter exploration and visualisation
 concepts/       11 standalone Python learning modules
 sas-python-examples/  SAS ↔ Python reference translations
