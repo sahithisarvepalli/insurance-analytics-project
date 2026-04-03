@@ -25,7 +25,6 @@ import logging
 import os
 import pathlib
 
-import numpy as np
 import pandas as pd
 import yaml
 
@@ -162,38 +161,58 @@ def _apply_mapping(df: pd.DataFrame, col_map: dict, defaults: dict) -> pd.DataFr
 
 
 def _derive_members(claims_df: pd.DataFrame) -> pd.DataFrame:
-    """Build a minimal *members* DataFrame from unique ``member_id`` values in claims."""
-    member_ids = claims_df["member_id"].dropna().unique()
-    n = len(member_ids)
-    rng = np.random.default_rng(42)
-    dob_year = rng.integers(1955, 2005, size=n)
-    dob = pd.to_datetime(dob_year, format="%Y") + pd.to_timedelta(
-        rng.integers(0, 365, size=n), unit="D"
+    """Build a *members* DataFrame from unique ``member_id`` values in claims.
+
+    When the claims data contains demographic columns produced by Kaggle column
+    mapping (``age``, ``gender``, ``region``) those values are used directly.
+    Otherwise, schema-level defaults are applied.  No random data is generated.
+    """
+    unique_claims = claims_df.drop_duplicates(subset=["member_id"]).reset_index(drop=True)
+    member_ids = unique_claims["member_id"].values
+
+    # Derive DOB from age when available, otherwise use a fixed reference date
+    if "age" in unique_claims.columns:
+        today = pd.Timestamp.now().normalize()
+        dob: pd.Series = today - pd.to_timedelta(
+            pd.to_numeric(unique_claims["age"], errors="coerce").fillna(0).astype(int) * 365,
+            unit="D",
+        )
+    else:
+        dob = pd.Series([pd.NaT] * len(unique_claims))
+
+    gender = (
+        unique_claims["gender"].values if "gender" in unique_claims.columns else "U"
     )
+    region = (
+        unique_claims["region"].values if "region" in unique_claims.columns else "Unknown"
+    )
+
     return pd.DataFrame(
         {
             "member_id": member_ids,
             "person_id": member_ids,
-            "dob": dob,
-            "gender": rng.choice(list("MF"), size=n),
-            "region": rng.choice(["East", "West", "North", "South"], size=n),
-            "effective_date": pd.Timestamp("2022-01-01"),
+            "dob": dob.values,
+            "gender": gender,
+            "region": region,
+            "effective_date": pd.Timestamp("2023-01-01"),
             "termination_date": pd.NaT,
         }
     )
 
 
 def _derive_providers(claims_df: pd.DataFrame) -> pd.DataFrame:
-    """Build a minimal *providers* DataFrame from unique ``provider_id`` values in claims."""
+    """Build a *providers* DataFrame from unique ``provider_id`` values in claims.
+
+    Typical Kaggle insurance datasets do not contain provider-level attributes;
+    schema defaults are applied.  No random data is generated.
+    """
     provider_ids = claims_df["provider_id"].dropna().unique()
-    n = len(provider_ids)
-    rng = np.random.default_rng(43)
     return pd.DataFrame(
         {
             "provider_id": provider_ids,
-            "specialty": rng.choice(["PCP", "Cardiology", "Ortho", "Derm", "Oncology"], size=n),
-            "in_network": rng.choice([True, False], size=n, p=[0.8, 0.2]),
-            "region": rng.choice(["East", "West", "North", "South"], size=n),
+            "specialty": "Unknown",
+            "in_network": True,
+            "region": "Unknown",
         }
     )
 

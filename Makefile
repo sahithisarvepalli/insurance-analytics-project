@@ -1,4 +1,4 @@
-.PHONY: help install clean test lint format check-types check run-jupyter run-jupyterlab db-init db-reset data-gen load-data setup quality security complexity docs pre-commit airflow-up airflow-down airflow-logs
+.PHONY: help install clean test lint format check-types check run-jupyter run-jupyterlab db-init db-reset kaggle-load setup quality security complexity docs pre-commit airflow-up airflow-down airflow-logs
 
 help:
 	@echo "📊 Insurance Analytics - Production Grade Monorepo"
@@ -21,9 +21,8 @@ help:
 	@echo "  make run-jupyterlab - Start JupyterLab"
 	@echo "  make db-init        - Initialize database"
 	@echo "  make db-reset       - Reset database"
-	@echo "  make data-gen       - Generate synthetic data"
-	@echo "  make load-data      - Load data into database"
-	@echo "  make setup          - Full setup (db + data)"
+	@echo "  make kaggle-load    - Download Kaggle dataset and load into database"
+	@echo "  make setup          - Full setup (db + kaggle data)"
 	@echo "  make airflow-up     - Start Airflow stack (webserver + scheduler)"
 	@echo "  make airflow-down   - Stop Airflow stack"
 	@echo "  make airflow-logs   - Tail Airflow scheduler logs"
@@ -141,18 +140,12 @@ db-reset:
 	psql $$DATABASE_URL -f sql/ddl_create_tables.sql
 	@echo "✅ Database reset"
 
-data-gen:
-	@echo "🎲 Generating synthetic data..."
-	mkdir -p data
-	python -m src.generate_synthetic --rows-members 2000 --rows-providers 300 --rows-claims 5000 --out-dir data/
-	@echo "✅ Data generated"
+kaggle-load:
+	@echo "📥 Downloading and loading Kaggle dataset..."
+	python -m src.load --kaggle-config config/kaggle.yaml
+	@echo "✅ Kaggle data loaded"
 
-load-data:
-	@echo "📥 Loading data into database..."
-	python -m src.load --from-csv --members data/sample_members.csv --providers data/sample_providers.csv --claims data/sample_claims.csv
-	@echo "✅ Data loaded"
-
-setup: install db-init data-gen load-data
+setup: install db-init kaggle-load
 	@echo "✅ Full setup complete!"
 
 airflow-up:
