@@ -200,8 +200,8 @@ def _derive_members(claims_df: pd.DataFrame) -> pd.DataFrame:
 def _derive_providers(claims_df: pd.DataFrame) -> pd.DataFrame:
     """Build a *providers* DataFrame from unique ``provider_id`` values in claims.
 
-    Typical Kaggle insurance datasets do not contain provider-level attributes;
-    schema defaults are applied.  No random data is generated.
+    Typical Kaggle insurance datasets do not contain provider-level attributes; schema defaults are
+    applied.  No random data is generated.
     """
     provider_ids = claims_df["provider_id"].dropna().unique()
     return pd.DataFrame(
@@ -212,6 +212,145 @@ def _derive_providers(claims_df: pd.DataFrame) -> pd.DataFrame:
             "region": "Unknown",
         }
     )
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Public API helpers
+# ────────────────────────────────────────────────────────────────────────────
+
+
+def _parse_dataset_config(
+    config_path: str,
+) -> tuple[str, str, str, dict, dict, dict]:
+    """Read *config_path* and return ``(owner, dataset, dest_dir, files, col_maps, user_defaults)``.
+
+    Raises
+    ------
+    ValueError
+        If ``active_dataset`` is missing.
+    KeyError
+        If the named ``active_dataset`` is not defined under ``datasets``.
+    """
+    with open(config_path, encoding="utf-8") as fh:
+        cfg = yaml.safe_load(fh)
+
+    active = cfg.get("active_dataset")
+    if not active:
+        raise ValueError("'active_dataset' is not set in the Kaggle config.")
+
+    datasets = cfg.get("datasets", {})
+    if active not in datasets:
+        raise KeyError(
+            f"Dataset '{active}' not found in config. "
+            f"Available datasets: {list(datasets.keys())}"
+        )
+
+    dataset_cfg = datasets[active]
+    owner: str = dataset_cfg["owner"]
+    dataset: str = dataset_cfg["dataset"]
+    dest_dir: str = dataset_cfg.get("dest_dir", f"data/kaggle/{active}")
+    files: dict = dataset_cfg.get("files", {})
+    col_maps: dict = dataset_cfg.get("column_map", {})
+    user_defaults: dict = dataset_cfg.get("defaults", {})
+    return owner, dataset, dest_dir, files, col_maps, user_defaults
+
+
+def _needs_download(dest_dir: str, files: dict) -> bool:
+    """Return ``True`` when the dataset must be (re-)downloaded."""
+    if not os.path.isdir(dest_dir):
+        return True
+    if files:
+        return any(
+            not os.path.isfile(os.path.join(dest_dir, filename)) for filename in files.values()
+        )
+    return not any(f.lower().endswith(".csv") for f in os.listdir(dest_dir))
+
+
+def _load_role_files(
+    dest_dir: str,
+    files: dict,
+    col_maps: dict,
+    user_defaults: dict,
+) -> dict[str, pd.DataFrame]:
+    """Read each configured file into a DataFrame and apply column mapping."""
+    result: dict[str, pd.DataFrame] = {}
+    for role, filename in files.items():
+        path = os.path.join(dest_dir, filename)
+        if not os.path.exists(path):
+            raise FileNotFoundError(
+                f"Expected file '{filename}' not found at '{path}'. "
+                "Check the 'files' section in config/kaggle.yaml."
+            )
+        df = pd.read_csv(path)
+        merged_defaults = {**_SCHEMA_DEFAULTS.get(role, {}), **user_defaults.get(role, {})}
+        df = _apply_mapping(df, col_maps.get(role, {}), merged_defaults)
+        result[role] = df
+        logger.info("Loaded %d rows for role '%s' from %s", len(df), role, path)
+    return result
+
+
+def _ensure_claims_keys(result: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    """Ensure claims has member_id / provider_id; derive missing member/provider tables."""
+    claims_df = result["claims"]
+    if "member_id" not in claims_df.columns:
+        claims_df = claims_df.assign(member_id=range(1, len(claims_df) + 1))
+        logger.info("No member_id in claims — assigned sequential IDs.")
+    if "provider_id" not in claims_df.columns:
+        claims_df = claims_df.assign(provider_id=1)
+        logger.info("No provider_id in claims — assigned provider_id=1 for all rows.")
+    result["claims"] = claims_df
+
+    if "members" not in result:
+        logger.info("No members file configured — deriving members from claims data.")
+        result["members"] = _derive_members(result["claims"])
+    if "providers" not in result:
+        logger.info("No providers file configured — deriving providers from claims data.")
+        result["providers"] = _derive_providers(result["claims"])
+    return result
+
+
+def _validate_member_fk(result: dict[str, pd.DataFrame]) -> None:
+    """Raise ``ValueError`` if claims references member_id values missing from members."""
+    members_df = result["members"]
+    if "member_id" not in members_df.columns:
+        raise ValueError(
+            "Configured 'members' file must include a 'member_id' column matching "
+            "'claims.member_id'. Either add this column to the members file or "
+            "remove the members file from the Kaggle config to let it be derived "
+            "from claims."
+        )
+    missing_ids = set(result["claims"]["member_id"].dropna()) - set(
+        members_df["member_id"].dropna()
+    )
+    if missing_ids:
+        sample_str = ", ".join(map(str, sorted(missing_ids)[:10]))
+        raise ValueError(
+            "The 'members' table is missing member_id values that are referenced "
+            f"in the 'claims' table. Total missing: {len(missing_ids)}. "
+            f"Example missing member_id values: {sample_str}"
+        )
+
+
+def _validate_provider_fk(result: dict[str, pd.DataFrame]) -> None:
+    """Raise ``ValueError`` if claims references provider_id values missing from providers."""
+    providers_df = result["providers"]
+    if "provider_id" not in providers_df.columns:
+        raise ValueError(
+            "Configured 'providers' file must include a 'provider_id' column matching "
+            "'claims.provider_id'. Either add this column to the providers file or "
+            "remove the providers file from the Kaggle config to let it be derived "
+            "from claims."
+        )
+    missing_ids = set(result["claims"]["provider_id"].dropna()) - set(
+        providers_df["provider_id"].dropna()
+    )
+    if missing_ids:
+        sample_str = ", ".join(map(str, sorted(missing_ids)[:10]))
+        raise ValueError(
+            "The 'providers' table is missing provider_id values that are referenced "
+            f"in the 'claims' table. Total missing: {len(missing_ids)}. "
+            f"Example missing provider_id values: {sample_str}"
+        )
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -244,58 +383,14 @@ def load_kaggle_data(config_path: str = _DEFAULT_CONFIG) -> dict[str, pd.DataFra
     EnvironmentError
         If Kaggle credentials cannot be located.
     """
-    with open(config_path, encoding="utf-8") as fh:
-        cfg = yaml.safe_load(fh)
+    owner, dataset, dest_dir, files, col_maps, user_defaults = _parse_dataset_config(config_path)
 
-    active = cfg.get("active_dataset")
-    if not active:
-        raise ValueError("'active_dataset' is not set in the Kaggle config.")
-
-    datasets = cfg.get("datasets", {})
-    if active not in datasets:
-        raise KeyError(
-            f"Dataset '{active}' not found in config. "
-            f"Available datasets: {list(datasets.keys())}"
-        )
-
-    dataset_cfg = datasets[active]
-    owner: str = dataset_cfg["owner"]
-    dataset: str = dataset_cfg["dataset"]
-    dest_dir: str = dataset_cfg.get("dest_dir", f"data/kaggle/{active}")
-    files: dict = dataset_cfg.get("files", {})
-    col_maps: dict = dataset_cfg.get("column_map", {})
-    user_defaults: dict = dataset_cfg.get("defaults", {})
-
-    # Download if the destination directory is missing or any configured file is absent.
-    if not os.path.isdir(dest_dir):
-        needs_download = True
-    elif files:
-        # When specific files are configured, require that all of them exist.
-        needs_download = any(
-            not os.path.isfile(os.path.join(dest_dir, filename)) for filename in files.values()
-        )
-    else:
-        # Fallback: if no files are configured, look for any CSV as a cache signal.
-        needs_download = not any(f.lower().endswith(".csv") for f in os.listdir(dest_dir))
-    if needs_download:
+    if _needs_download(dest_dir, files):
         download_dataset(owner, dataset, dest_dir)
     else:
         logger.info("Using cached Kaggle data from %s", dest_dir)
 
-    result: dict[str, pd.DataFrame] = {}
-    for role, filename in files.items():
-        path = os.path.join(dest_dir, filename)
-        if not os.path.exists(path):
-            raise FileNotFoundError(
-                f"Expected file '{filename}' not found at '{path}'. "
-                "Check the 'files' section in config/kaggle.yaml."
-            )
-        df = pd.read_csv(path)
-        # Merge schema-level defaults with user overrides (user config wins)
-        merged_defaults = {**_SCHEMA_DEFAULTS.get(role, {}), **user_defaults.get(role, {})}
-        df = _apply_mapping(df, col_maps.get(role, {}), merged_defaults)
-        result[role] = df
-        logger.info("Loaded %d rows for role '%s' from %s", len(df), role, path)
+    result = _load_role_files(dest_dir, files, col_maps, user_defaults)
 
     if "claims" not in result:
         raise ValueError(
@@ -303,67 +398,11 @@ def load_kaggle_data(config_path: str = _DEFAULT_CONFIG) -> dict[str, pd.DataFra
             "Check the 'files' section in config/kaggle.yaml."
         )
 
-    # Ensure claims carry member_id / provider_id so FK derivation works
-    claims_df = result["claims"]
-    if "member_id" not in claims_df.columns:
-        claims_df = claims_df.assign(member_id=range(1, len(claims_df) + 1))
-        logger.info("No member_id in claims — assigned sequential IDs.")
-    if "provider_id" not in claims_df.columns:
-        claims_df = claims_df.assign(provider_id=1)
-        logger.info("No provider_id in claims — assigned provider_id=1 for all rows.")
-    result["claims"] = claims_df
-
-    # Auto-derive member / provider tables when not supplied by the dataset
-    if "members" not in result:
-        logger.info("No members file configured — deriving members from claims data.")
-        result["members"] = _derive_members(result["claims"])
-
-    if "providers" not in result:
-        logger.info("No providers file configured — deriving providers from claims data.")
-        result["providers"] = _derive_providers(result["claims"])
-
-    # Validate FK consistency when members/providers were explicitly configured
-    # (derived tables are always consistent by construction)
-    claims_df = result["claims"]
+    result = _ensure_claims_keys(result)
 
     if "members" in files:
-        members_df = result["members"]
-        if "member_id" not in members_df.columns:
-            raise ValueError(
-                "Configured 'members' file must include a 'member_id' column matching "
-                "'claims.member_id'. Either add this column to the members file or "
-                "remove the members file from the Kaggle config to let it be derived "
-                "from claims."
-            )
-        missing_member_ids = set(claims_df["member_id"].dropna()) - set(
-            members_df["member_id"].dropna()
-        )
-        if missing_member_ids:
-            sample_str = ", ".join(map(str, sorted(missing_member_ids)[:10]))
-            raise ValueError(
-                "The 'members' table is missing member_id values that are referenced "
-                f"in the 'claims' table. Total missing: {len(missing_member_ids)}. "
-                f"Example missing member_id values: {sample_str}"
-            )
-
+        _validate_member_fk(result)
     if "providers" in files:
-        providers_df = result["providers"]
-        if "provider_id" not in providers_df.columns:
-            raise ValueError(
-                "Configured 'providers' file must include a 'provider_id' column matching "
-                "'claims.provider_id'. Either add this column to the providers file or "
-                "remove the providers file from the Kaggle config to let it be derived "
-                "from claims."
-            )
-        missing_provider_ids = set(claims_df["provider_id"].dropna()) - set(
-            providers_df["provider_id"].dropna()
-        )
-        if missing_provider_ids:
-            sample_str = ", ".join(map(str, sorted(missing_provider_ids)[:10]))
-            raise ValueError(
-                "The 'providers' table is missing provider_id values that are referenced "
-                f"in the 'claims' table. Total missing: {len(missing_provider_ids)}. "
-                f"Example missing provider_id values: {sample_str}"
-            )
+        _validate_provider_fk(result)
 
     return result

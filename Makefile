@@ -82,7 +82,7 @@ quality:
 	radon cc src -a -nb
 	radon mi src -nb
 	xenon src --max-average A --max-modules A --max-absolute B
-	cohesion src
+	cohesion -d src
 	vulture src || true
 	@echo "✅ Quality analysis completed"
 
