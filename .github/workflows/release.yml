@@ -37,6 +37,70 @@ jobs:
           done
           echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
 
+      - name: Build release notes
+        id: notes
+        run: |
+          last_tag="${{ steps.get_tag.outputs.last_tag }}"
+
+          # Collect commits since the last tag (or all commits for the first release)
+          if git rev-parse --verify "refs/tags/$last_tag" >/dev/null 2>&1; then
+            commits=$(git log "$last_tag"..HEAD --pretty=format:"%s" --no-merges)
+          else
+            commits=$(git log HEAD --pretty=format:"%s" --no-merges)
+          fi
+
+          features=""
+          fixes=""
+          enhancements=""
+          other=""
+
+          while IFS= read -r msg; do
+            [ -z "$msg" ] && continue
+            lower=$(echo "$msg" | tr '[:upper:]' '[:lower:]')
+            # Strip only known conventional-commit prefixes for display (e.g. "feat: " or "feat!: " -> "")
+            display=$(echo "$msg" | sed -E 's/^(feat|feature|add|fix|bug|bugfix|hotfix|enhance|improvement|improve|perf|refactor|style|chore|docs|ci|test)(\([^)]*\))?!?: //')
+            if echo "$lower" | grep -qE '^(feat|feature|add)(\(|!?:)'; then
+              features="$features\n- $display"
+            elif echo "$lower" | grep -qE '^(fix|bug|bugfix|hotfix)(\(|!?:)'; then
+              fixes="$fixes\n- $display"
+            elif echo "$lower" | grep -qE '^(enhance|improvement|improve|perf|refactor|style|chore|docs|ci|test)(\(|!?:)'; then
+              enhancements="$enhancements\n- $display"
+            else
+              # Classify by keyword when no conventional-commit prefix is present
+              if echo "$lower" | grep -qE '(^|[^[:alnum:]_])(add|new|implement|introduc|creat|support)([^[:alnum:]_]|$)'; then
+                features="$features\n- $msg"
+              elif echo "$lower" | grep -qE '(^|[^[:alnum:]_])(fix|bug|resolv|correct|patch|revert)([^[:alnum:]_]|$)'; then
+                fixes="$fixes\n- $msg"
+              elif echo "$lower" | grep -qE '(^|[^[:alnum:]_])(improve|enhance|optimiz|refactor|updat|upgrad|clean|simplif)([^[:alnum:]_]|$)'; then
+                enhancements="$enhancements\n- $msg"
+              else
+                other="$other\n- $msg"
+              fi
+            fi
+          done <<< "$commits"
+
+          # Assemble the release body
+          body=""
+          if [ -n "$features" ]; then
+            body="${body}## ✨ Features\n${features}\n\n"
+          fi
+          if [ -n "$fixes" ]; then
+            body="${body}## 🐛 Bug Fixes\n${fixes}\n\n"
+          fi
+          if [ -n "$enhancements" ]; then
+            body="${body}## 🔧 Enhancements & Improvements\n${enhancements}\n\n"
+          fi
+          if [ -n "$other" ]; then
+            body="${body}## 📝 Other Changes\n${other}\n\n"
+          fi
+          if [ -z "$body" ]; then
+            body="No changes recorded since $last_tag."
+          fi
+
+          # Write to a file to safely pass multi-line content to subsequent steps
+          printf "%b" "$body" > /tmp/release_notes.md
+          echo "notes_file=/tmp/release_notes.md" >> $GITHUB_OUTPUT
+
       - name: Create tag
         run: |
           git tag ${{ steps.bump.outputs.new_tag }}
@@ -46,4 +110,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.bump.outputs.new_tag }}
-          generate_release_notes: true
+          body_path: ${{ steps.notes.outputs.notes_file }}
