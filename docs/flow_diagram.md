@@ -1,6 +1,6 @@
 # 🗺️ Data Flow Diagram
 
-> **Concept:** This diagram shows how data moves through the pipeline — from Kaggle download all the way to the final Excel report.
+> **Concept:** This diagram shows how data moves through the pipeline — from Kaggle download all the way to the DuckDB warehouse and the final Excel report.
 
 ```mermaid
 flowchart TD
@@ -9,8 +9,9 @@ flowchart TD
     classDef compute   fill:#e8f5e9,stroke:#388e3c,color:#000
     classDef output    fill:#fff8e1,stroke:#f57f17,color:#000
     classDef infra     fill:#ede7f6,stroke:#7b1fa2,color:#000
+    classDef warehouse fill:#e0f2f1,stroke:#00796b,color:#000
 
-    subgraph Ingest["📥 Ingest"]
+    subgraph Ingest["📥 Ingest (light ETL)"]
         KI["kaggle_ingest.py\nDownload + map columns"]
         LD["load.py\nTruncate + write to DB"]
         KI --> LD
@@ -23,11 +24,11 @@ flowchart TD
         C["💊 claim"]
     end
 
-    subgraph Transform["🔧 Transform"]
+    subgraph Transform["🔧 Transform (ELT)"]
         TR["transform.py\nJoin tables · compute KPIs\ntrends · loss ratios"]
     end
 
-    subgraph Model["🤖 ML Model"]
+    subgraph Model["🤖 ML Model (ELT)"]
         MO["model.py\nLabel high-cost members\ntrain logistic regression"]
     end
 
@@ -38,6 +39,12 @@ flowchart TD
         CSV4["network_summary.csv"]
         CSV5["diagnosis_summary.csv"]
         TXT["model_metrics.txt"]
+    end
+
+    subgraph DWLoad["🏛️ DW Load (ELT)"]
+        DW["dw_load.py\nBuild DuckDB star-schema\ndims · fact · summaries"]
+        DUCK["insurance_dw.duckdb\ndim_member · dim_provider\ndim_date · fact_claims\nsummary tables"]
+        DW --> DUCK
     end
 
     subgraph Report["📊 Report"]
@@ -51,10 +58,12 @@ flowchart TD
     end
 
     LD --> M & P & C
-    UT -->|"shared by"| LD & TR & MO
+    UT -->|"shared by"| LD & TR & MO & DW
     M & P & C --> TR & MO
     TR --> CSV1 & CSV2 & CSV3 & CSV4 & CSV5
     MO --> TXT
+    M & P & C --> DW
+    CSV1 & CSV2 & CSV3 & CSV4 --> DW
     CSV1 & CSV2 & CSV3 & CSV4 & CSV5 & TXT --> RP
 
     class KI,LD ingestion
@@ -62,6 +71,7 @@ flowchart TD
     class TR,MO compute
     class CSV1,CSV2,CSV3,CSV4,CSV5,TXT,XL output
     class UT infra
+    class DW,DUCK warehouse
 ```
 
 ---
@@ -74,5 +84,8 @@ flowchart TD
 | `load.py` | PostgreSQL | 3 relational tables |
 | PostgreSQL | `transform.py` | SQL JOINed query results |
 | `transform.py` | `outputs/` | 5 CSV files |
+| PostgreSQL | `model.py` | Aggregated member-level cost query |
 | `model.py` | `outputs/` | `model_metrics.txt` |
+| PostgreSQL + `outputs/` | `dw_load.py` | Dims/fact from Postgres; summaries from CSVs |
+| `dw_load.py` | `outputs/insurance_dw.duckdb` | Star-schema DuckDB warehouse |
 | `outputs/` | `report.py` | 6 files → 6 Excel sheets |

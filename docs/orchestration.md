@@ -50,7 +50,7 @@ docker compose -f docker-compose-airflow.yml logs -f airflow-webserver
 ① Click "insurance_analytics_pipeline" in the DAG list
 ② Click ▶ Trigger DAG (top right)
 ③ Watch tasks go green:
-   kaggle_ingest → transform → ml_model → generate_excel_report
+   kaggle_ingest → [transform + ml_model] → load_duckdb_warehouse → generate_excel_report
 ④ Click any task → Log tab to see output
 ```
 
@@ -92,7 +92,7 @@ The file `.github/workflows/scheduled-pipeline.yml` runs the pipeline automatica
 
 After each run: **workflow run page → Artifacts** → download `pipeline-outputs-<run_number>`
 
-Contains: `kpis.csv`, `monthly.csv`, `loss_ratio.csv`, `network_summary.csv`, `diagnosis_summary.csv`, `model_metrics.txt`, `insurance_summary.xlsx`
+Contains: `kpis.csv`, `monthly.csv`, `loss_ratio.csv`, `network_summary.csv`, `diagnosis_summary.csv`, `model_metrics.txt`, `insurance_dw.duckdb`, `insurance_summary.xlsx`
 
 ---
 
