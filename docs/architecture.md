@@ -71,7 +71,7 @@ The relational model uses a single schema (`insurance`) with a classic star-like
 | **Diagnosis Summary** (`outputs/diagnosis_summary.csv`) | Diagnosis code analysis | Claims and costs ranked by ICD diagnosis code |
 | **Model Predictions** (`outputs/model_metrics.txt`) | Scored output | Accuracy metric from the high-cost logistic regression model |
 
-Full DDL: [`sql/ddl_create_tables.sql`](../sql/ddl_create_tables.sql)
+Full DDL: [`src/sql/ddl_create_tables.sql`](../src/sql/ddl_create_tables.sql)
 
 ---
 

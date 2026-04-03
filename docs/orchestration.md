@@ -290,7 +290,7 @@ the dev container ran the schema setup:
 
 ```bash
 # Inside the dev container terminal
-psql "$DATABASE_URL" -f sql/ddl_create_tables.sql
+psql "$DATABASE_URL" -f src/sql/ddl_create_tables.sql
 ```
 
 ### Q: "How do I change the schedule?"

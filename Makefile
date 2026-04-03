@@ -127,14 +127,14 @@ run-jupyterlab:
 
 db-init:
 	@echo "🗄️  Initializing database..."
-	psql $$DATABASE_URL -f sql/ddl_create_tables.sql
+	psql $$DATABASE_URL -f src/sql/ddl_create_tables.sql
 	@echo "✅ Database initialized"
 
 db-reset:
 	@echo "🔄 Resetting database..."
 	psql $$DATABASE_URL -c "DROP SCHEMA IF EXISTS insurance CASCADE;"
 	psql $$DATABASE_URL -c "CREATE SCHEMA insurance;"
-	psql $$DATABASE_URL -f sql/ddl_create_tables.sql
+	psql $$DATABASE_URL -f src/sql/ddl_create_tables.sql
 	@echo "✅ Database reset"
 
 kaggle-load:

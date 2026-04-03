@@ -55,6 +55,13 @@ dev = [
     "pytest-mock>=3.12.0,<4.0.0"
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+"src.sql" = ["*.sql"]
+
 [tool.black]
 line-length = 100
 target-version = ['py311']
