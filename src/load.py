@@ -41,7 +41,11 @@ def load_from_csv(members, providers, claims):
     # Uses truncate-then-load to stay idempotent across repeated / scheduled runs.
     with eng.begin() as con:
         con.execute(text("CREATE SCHEMA IF NOT EXISTS insurance;"))
-        con.execute(text("TRUNCATE insurance.claim, insurance.provider, insurance.member RESTART IDENTITY CASCADE;"))
+        con.execute(
+            text(
+                "TRUNCATE insurance.claim, insurance.provider, insurance.member RESTART IDENTITY CASCADE;"
+            )
+        )
         members_df.to_sql("member", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
         providers_df.to_sql("provider", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
         claims_df.to_sql("claim", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
@@ -72,7 +76,11 @@ def load_from_kaggle(config_path: str = "config/kaggle.yaml") -> None:
     eng = get_engine()
     with eng.begin() as con:
         con.execute(text("CREATE SCHEMA IF NOT EXISTS insurance;"))
-        con.execute(text("TRUNCATE insurance.claim, insurance.provider, insurance.member RESTART IDENTITY CASCADE;"))
+        con.execute(
+            text(
+                "TRUNCATE insurance.claim, insurance.provider, insurance.member RESTART IDENTITY CASCADE;"
+            )
+        )
         members_df.to_sql("member", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
         providers_df.to_sql("provider", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
         claims_df.to_sql("claim", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)

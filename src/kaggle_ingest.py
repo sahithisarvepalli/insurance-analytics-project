@@ -191,9 +191,7 @@ def _derive_providers(claims_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(
         {
             "provider_id": provider_ids,
-            "specialty": rng.choice(
-                ["PCP", "Cardiology", "Ortho", "Derm", "Oncology"], size=n
-            ),
+            "specialty": rng.choice(["PCP", "Cardiology", "Ortho", "Derm", "Oncology"], size=n),
             "in_network": rng.choice([True, False], size=n, p=[0.8, 0.2]),
             "region": rng.choice(["East", "West", "North", "South"], size=n),
         }
@@ -258,8 +256,7 @@ def load_kaggle_data(config_path: str = _DEFAULT_CONFIG) -> dict[str, pd.DataFra
     elif files:
         # When specific files are configured, require that all of them exist.
         needs_download = any(
-            not os.path.isfile(os.path.join(dest_dir, filename))
-            for filename in files.values()
+            not os.path.isfile(os.path.join(dest_dir, filename)) for filename in files.values()
         )
     else:
         # Fallback: if no files are configured, look for any CSV as a cache signal.

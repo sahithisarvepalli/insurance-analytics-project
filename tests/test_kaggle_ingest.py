@@ -17,7 +17,6 @@ from src.kaggle_ingest import (
     load_kaggle_data,
 )
 
-
 # ────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────
@@ -216,7 +215,9 @@ class TestDownloadDataset:
 # ────────────────────────────────────────────────────────────────────────────
 
 
-def _write_config(tmp_path, active_dataset="test_ds", extra_files=None, col_map=None, defaults=None):
+def _write_config(
+    tmp_path, active_dataset="test_ds", extra_files=None, col_map=None, defaults=None
+):
     """Write a minimal Kaggle YAML config to a temp file and return its path."""
     files = extra_files or {"claims": "claims.csv"}
     config = {
