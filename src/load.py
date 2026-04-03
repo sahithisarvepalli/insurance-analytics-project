@@ -1,13 +1,35 @@
 """Load a Kaggle insurance dataset into the PostgreSQL database."""
 
 import argparse
+from importlib import resources
 
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 from .utils import get_engine, logger
 
 _SCHEMA = "insurance"
 _IF_EXISTS = "append"
+
+
+def _read_ddl() -> str:
+    """Return the canonical DDL SQL bundled with the package."""
+    ref = resources.files("src.sql").joinpath("ddl_create_tables.sql")
+    return ref.read_text(encoding="utf-8")
+
+
+def _apply_ddl(con) -> None:
+    """Drop and recreate the insurance schema using the canonical DDL file."""
+    con.execute(text(f"DROP SCHEMA IF EXISTS {_SCHEMA} CASCADE;"))
+    ddl = _read_ddl()
+    for stmt in ddl.split(";"):
+        stmt = stmt.strip()
+        if stmt:
+            con.execute(text(stmt))
+
+
+def _table_columns(con, table: str) -> list:
+    """Return column names for *table* by reflecting the live DB schema."""
+    return [col["name"] for col in inspect(con).get_columns(table, schema=_SCHEMA)]
 
 
 def load_from_kaggle(config_path: str = "config/kaggle.yaml") -> None:
@@ -32,13 +54,18 @@ def load_from_kaggle(config_path: str = "config/kaggle.yaml") -> None:
 
     eng = get_engine()
     with eng.begin() as con:
-        con.execute(text("CREATE SCHEMA IF NOT EXISTS insurance;"))
-        con.execute(
-            text(
-                "TRUNCATE insurance.claim, insurance.provider, insurance.member "
-                "RESTART IDENTITY CASCADE;"
-            )
-        )
+        _apply_ddl(con)
+
+        # Reflect column names inside the same transaction — trims any source columns
+        # not declared by the table.
+        members_df = members_df[
+            [c for c in _table_columns(con, "member") if c in members_df.columns]
+        ]
+        providers_df = providers_df[
+            [c for c in _table_columns(con, "provider") if c in providers_df.columns]
+        ]
+        claims_df = claims_df[[c for c in _table_columns(con, "claim") if c in claims_df.columns]]
+
         members_df.to_sql("member", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
         providers_df.to_sql("provider", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
         claims_df.to_sql("claim", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)

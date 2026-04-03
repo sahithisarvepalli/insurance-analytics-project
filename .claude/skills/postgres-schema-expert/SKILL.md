@@ -38,7 +38,7 @@ make db-init
 | `member_id` | `BIGSERIAL` PRIMARY KEY | Auto-incrementing surrogate key |
 | `person_id` | `BIGINT` | External identifier |
 | `dob` | `DATE` | Date of birth — used to derive age in Python |
-| `gender` | `VARCHAR(1)` | `'M'` / `'F'` / `'U'` — Kaggle datasets map the source `sex` column to `gender`; `'U'` is the default when gender is absent |
+| `gender` | `VARCHAR(10)` | `'male'` / `'female'` / `'U'` — Kaggle datasets map the source `sex` column to `gender`; `'U'` is the default when gender is absent |
 | `region` | `VARCHAR(50)` | Geographic region (e.g. `'Northeast'`) |
 | `effective_date` | `DATE` | Coverage start date |
 | `termination_date` | `DATE` | Coverage end date (`NULL` = still active) |

@@ -55,6 +55,13 @@ dev = [
     "pytest-mock>=3.12.0,<4.0.0"
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+"src.sql" = ["*.sql"]
+
 [tool.black]
 line-length = 100
 target-version = ['py311']
@@ -182,7 +189,7 @@ max_absolute = "B"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q --strict-markers --strict-config --cov=src --cov-report=html --cov-report=term-missing"
+addopts = "-ra -q --strict-markers --strict-config --cov=src --cov-report=html:build/reports/htmlcov --cov-report=term-missing --cov-report=xml:build/reports/coverage.xml"
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
@@ -202,6 +209,7 @@ omit = [
     "notebooks/*",
     "concepts/*"
 ]
+data_file = "build/reports/.coverage"
 
 [tool.coverage.report]
 exclude_lines = [

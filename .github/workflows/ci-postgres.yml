@@ -1,28 +1,27 @@
-
 name: CI - Python + PostgreSQL
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'sql/**'
-      - 'requirements.txt'
-      - 'pyproject.toml'
-      - 'sonar-project.properties'
-      - '.github/workflows/ci-postgres.yml'
+      - "src/**"
+      - "tests/**"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - "sonar-project.properties"
+      - ".github/workflows/ci-postgres.yml"
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'requirements.txt'
-      - 'pyproject.toml'
+      - "src/**"
+      - "tests/**"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - "sonar-project.properties"
 
 permissions:
-  contents: read        # allow checkout of source code
-  pull-requests: write  # allow SonarCloud & Copilot agent to post PR comments/suggestions
+  contents: read # allow checkout of source code
+  pull-requests: write # allow SonarCloud & Copilot agent to post PR comments/suggestions
   security-events: write # allow uploading SARIF / security scan results
 
 jobs:
@@ -111,7 +110,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y postgresql-client
           psql "postgresql://postgres:postgres@localhost:5432/insurdb" -c "CREATE SCHEMA IF NOT EXISTS insurance;"
-          psql "postgresql://postgres:postgres@localhost:5432/insurdb" -f sql/ddl_create_tables.sql
+          psql "postgresql://postgres:postgres@localhost:5432/insurdb" -f src/sql/ddl_create_tables.sql
 
       - name: Seed data
         run: |
@@ -134,17 +133,18 @@ jobs:
 
       - name: Run transforms & tests
         run: |
+          mkdir -p build/reports
           python -m src.transform
           pytest -q -m integration \
-            --junitxml=junit-report.xml \
+            --junitxml=build/reports/junit-report.xml \
             --cov=src \
-            --cov-report=xml:coverage.xml
+            --cov-report=xml:build/reports/coverage.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage.xml
+          file: ./build/reports/coverage.xml
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
@@ -154,8 +154,8 @@ jobs:
         with:
           name: test-results
           path: |
-            coverage.xml
-            junit-report.xml
+            build/reports/coverage.xml
+            build/reports/junit-report.xml
 
   # ── JOB 3: SonarCloud Analysis ───────────────────────────────────────────────
   sonarcloud:
@@ -163,8 +163,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     permissions:
-      contents: read        # checkout source for scanning
-      pull-requests: write  # post SonarCloud Quality Gate status on PRs
+      contents: read # checkout source for scanning
+      pull-requests: write # post SonarCloud Quality Gate status on PRs
       security-events: write # upload SARIF results to GitHub Security tab
 
     steps:

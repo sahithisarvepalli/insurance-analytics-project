@@ -11,14 +11,18 @@ import pandas as pd
 
 
 def main():
+    os.makedirs("build/scratch", exist_ok=True)
+    sample_path = "build/scratch/sample.csv"
+    output_path = "build/scratch/output.csv"
+
     # Create sample data if file doesn't exist
-    if not os.path.exists("sample.csv"):
+    if not os.path.exists(sample_path):
         df = pd.DataFrame({"name": ["Alice", "Bob"], "age": [25, 30]})
-        df.to_csv("sample.csv", index=False)
-        print("Created sample.csv")
+        df.to_csv(sample_path, index=False)
+        print("Created build/scratch/sample.csv")
 
     # Read CSV
-    df = pd.read_csv("sample.csv")
+    df = pd.read_csv(sample_path)
     print("Original data:")
     print(df)
 
@@ -26,8 +30,8 @@ def main():
     df["greeting"] = "Hello, " + df["name"] + "!"
 
     # Write to new CSV
-    df.to_csv("output.csv", index=False)
-    print("Wrote output.csv with added column")
+    df.to_csv(output_path, index=False)
+    print("Wrote build/scratch/output.csv with added column")
 
 
 if __name__ == "__main__":

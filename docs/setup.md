@@ -42,7 +42,7 @@ export KAGGLE_KEY=your_kaggle_api_key
 
 # 7. Schema
 psql "$DATABASE_URL" -c "CREATE SCHEMA IF NOT EXISTS insurance;"
-psql "$DATABASE_URL" -f sql/ddl_create_tables.sql
+psql "$DATABASE_URL" -f src/sql/ddl_create_tables.sql
 
 # 8. Data — download from Kaggle and load into the database
 python -m src.load --kaggle-config config/kaggle.yaml
