@@ -70,7 +70,7 @@ def _ensure_kaggle_credentials() -> None:
         return
     if (pathlib.Path.home() / ".kaggle" / "kaggle.json").exists():
         return
-    raise EnvironmentError(
+    raise OSError(
         "Kaggle credentials not found. "
         "Set the KAGGLE_USERNAME and KAGGLE_KEY environment variables, "
         "or place your API token at ~/.kaggle/kaggle.json. "

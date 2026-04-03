@@ -14,7 +14,6 @@ import pytest
 
 from src.transform import run_transform
 
-
 # ────────────────────────────────────────────────────────────────────────────
 # Fixture: minimal joined DataFrame matching the SQL query output
 # ────────────────────────────────────────────────────────────────────────────
