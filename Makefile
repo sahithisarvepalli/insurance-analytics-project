@@ -42,18 +42,15 @@ clean:
 	find . -type d -name '.mypy_cache' -delete
 	find . -type d -name '*.egg-info' -delete
 	find . -type d -name 'dist' -delete
-	find . -type d -name 'build' -delete
-	find . -type d -name 'htmlcov' -delete
-	find . -type d -name '.coverage' -delete
-	find . -type f -name 'coverage.xml' -delete
-	find . -type f -name 'junit-report.xml' -delete
+	rm -rf build/
 	find . -type f -name 'pylint-report.txt' -delete
 	find . -type f -name 'bandit-report.json' -delete
 	@echo "✅ Cleaned"
 
 test:
 	@echo "🧪 Running tests..."
-	pytest tests/ -v --cov=src --cov-report=html --cov-report=term-missing --junitxml=junit-report.xml
+	mkdir -p build/reports
+	pytest tests/ -v --cov=src --cov-report=html:build/reports/htmlcov --cov-report=term-missing --cov-report=xml:build/reports/coverage.xml --junitxml=build/reports/junit-report.xml
 	@echo "✅ Tests passed"
 
 lint:
