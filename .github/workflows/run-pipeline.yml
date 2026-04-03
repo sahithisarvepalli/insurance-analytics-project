@@ -33,6 +33,11 @@ on:
         type: number
         required: false
         default: 30
+    secrets:
+      KAGGLE_USERNAME:
+        required: false
+      KAGGLE_KEY:
+        required: false
 
 jobs:
   pipeline:
