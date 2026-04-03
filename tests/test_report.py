@@ -270,7 +270,7 @@ def test_report_succeeds_with_no_output_files(tmp_path, monkeypatch):
 
 @pytest.mark.unit
 def test_report_raises_on_invalid_kpis_columns(tmp_path, monkeypatch):
-    """main() must raise ValueError if kpis.csv has missing required columns."""
+    """Main() must raise ValueError if kpis.csv has missing required columns."""
     bad_kpis = pd.DataFrame({"age_band": ["0-18"], "claims": [5]})  # missing paid_total etc.
     _write_outputs(tmp_path, kpis=bad_kpis)
     out_file = str(tmp_path / "report.xlsx")

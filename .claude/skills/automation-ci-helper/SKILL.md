@@ -13,7 +13,9 @@ This skill covers all automation in the insurance analytics project: GitHub Acti
 |---|---|---|
 | GitHub Actions – CI | `.github/workflows/ci-postgres.yml` | Lint → test → SonarCloud on every push/PR |
 | GitHub Actions – Release | `.github/workflows/release.yml` | Manual workflow dispatch: bumps patch version tag and creates a GitHub Release (no build artifact is uploaded) |
-| GitHub Actions – Scheduled | `.github/workflows/scheduled-pipeline.yml` | Runs the pipeline on a schedule |
+| GitHub Actions – Scheduled | `.github/workflows/scheduled-pipeline.yml` | Runs the pipeline on a schedule (now delegates to a reusable workflow) |
+| GitHub Actions – Reusable pipeline | `.github/workflows/run-pipeline.yml` | Reusable workflow that owns Postgres service and runs ingest/ETL/upload |
+| Composite actions | `.github/actions/setup-python-env`, `.github/actions/run-etl` | Shared actions for Python setup and running ETL steps |
 | Airflow DAG | `airflow/dags/insurance_pipeline_dag.py` | Orchestrates the ETL end-to-end |
 | Makefile | `Makefile` | Developer task runner (local shortcuts) |
 | Pre-commit hooks | `.pre-commit-config.yaml` | Auto-formats and lints on every `git commit` |
@@ -23,12 +25,12 @@ This skill covers all automation in the insurance analytics project: GitHub Acti
 The CI workflow has **three sequential jobs**:
 
 ```
-lint  →  test  →  sonarcloud
+lint  →  etl  →  sonarcloud
 ```
 
 ### Job 1 – `lint` (static analysis)
 
-Runs on every **push** to `main`/`master` that touches `src/**`, `tests/**`, `sql/**`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml`. **Pull requests** to those branches trigger `lint` only when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are changed (`sql/**` and other config files do **not** trigger CI on PRs).
+Runs on every **push** to `main`/`master` that touches `src/**`, `tests/**`, `src/sql/**`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml`. **Pull requests** to those branches trigger `lint` only when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are changed (`src/sql/**` and other config files do **not** trigger CI on PRs).
 
 Steps:
 1. `black --check` + `isort --check` – formatting
@@ -37,14 +39,17 @@ Steps:
 4. `bandit -r src` – security scan
 5. `radon cc` + `radon mi` – cyclomatic complexity and maintainability index
 
-### Job 2 – `test` (integration tests with PostgreSQL)
+### Job 2 – `etl` (ETL smoke test with PostgreSQL)
 
-Spins up a **PostgreSQL 15 service container** (`POSTGRES_USER=postgres`, `POSTGRES_DB=insurdb`), then:
+The project now centralises the integration pipeline in a reusable workflow: `.github/workflows/run-pipeline.yml`.
 
-1. Applies the DDL (`sql/ddl_create_tables.sql`)
-2. Seeds data directly via inline SQL INSERT statements
-3. Runs the transform (`src.transform`)
-4. Runs pytest with `--cov` and uploads coverage to Codecov
+Key points:
+
+- The reusable workflow owns the **Postgres 15 service** and offers two modes via inputs:
+	- `seed-db: true` — initialise and seed the DB with stable fixtures (used by CI tests)
+	- `seed-db: false` — run a live Kaggle ingest via `src.load` (used by the scheduled run)
+- Schema application is no longer performed with runner `psql -f ...` in multiple places; the loader/seed script executes the canonical DDL (`src/sql/ddl_create_tables.sql`) via the same Python helper (`_apply_ddl()`), so CI and scheduled runs share the exact schema logic.
+- The test flow (CI) typically calls the reusable workflow with `seed-db: true`, runs the ETL steps, and then a dedicated coverage job collects and uploads coverage artifacts.
 
 Key environment variable set by the workflow:
 
@@ -54,14 +59,18 @@ DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
 
 ### Job 3 – `sonarcloud`
 
-Downloads the test artifacts (coverage + JUnit XML) and runs SonarCloud analysis. Each job requires its own secret:
+Downloads the test artifacts (coverage + JUnit XML) and runs SonarCloud analysis. The Sonar job now depends on the CI coverage job (which produces `build/reports/coverage.xml` and `build/reports/junit-report.xml`).
 
-- `SONAR_TOKEN` – required by **this job** (SonarCloud authentication)
-- `CODECOV_TOKEN` – required by **Job 2** only (Codecov coverage upload; not used by SonarCloud)
+Secrets used:
+
+- `SONAR_TOKEN` – SonarCloud authentication
+- `CODECOV_TOKEN` – Codecov upload (used by the CI coverage job)
 
 ### Triggering CI manually
 
-Push any change to a file under `src/`, `tests/`, `sql/`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml` on a branch targeting `main`/`master`. A pull request against those branches also triggers CI when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are modified.
+Push any change to a file under `src/`, `tests/`, `src/sql/`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml` on a branch targeting `main`/`master`. A pull request against those branches also triggers CI when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are modified.
+
+Note: because the ETL and service logic are now in a reusable workflow, changes to the pipeline are tested more consistently across CI and scheduled runs.
 
 ## Makefile: local task runner
 
@@ -76,7 +85,7 @@ make check-types    # mypy --strict
 make quality        # bandit + radon + xenon + cohesion + vulture
 make check          # lint + check-types + test + quality (full gate)
 
-make db-init        # apply sql/ddl_create_tables.sql
+make db-init        # apply src/sql/ddl_create_tables.sql
 make db-reset       # DROP SCHEMA + re-apply DDL
 make kaggle-load    # download Kaggle dataset and load into PostgreSQL
 make setup          # install + db-init + kaggle-load (full first-time setup)
@@ -146,10 +155,12 @@ Run this locally before opening a pull request to catch issues that CI will also
 
 ## Adding a new CI step
 
-1. Open `.github/workflows/ci-postgres.yml`.
-2. Add a new `- name: …` step inside the appropriate job (`lint` for static checks, `test` for runtime checks).
-3. Any new Python tool must also be added to `requirements.txt` and optionally `pyproject.toml` so it installs in CI.
-4. Test the workflow by pushing to a feature branch and opening a pull request.
+Prefer adding new behaviour as a composite action or to the reusable workflow so it can be exercised by both CI and scheduled runs. General steps:
+
+1. If the change affects runtime/test behaviour (DB, ETL), update `./.github/workflows/run-pipeline.yml` or add a new composite action under `./.github/actions/` so callers can reuse it.
+2. Otherwise add a step in `ci-postgres.yml` (lint/coverage) or in `run-pipeline.yml` for runtime steps.
+3. Add required Python tooling to `requirements.txt` and/or `pyproject.toml`.
+4. Test locally (run `make test`) and push to a feature branch to validate the workflow in Actions.
 
 ## Common CI failures and fixes
 
@@ -158,7 +169,7 @@ Run this locally before opening a pull request to catch issues that CI will also
 | `black --check` fails | Code not formatted | Run `make format` locally, then commit |
 | `mypy` errors | Missing type annotations or wrong types | Add/fix type hints in `src/` |
 | `bandit` security warning | Use of a flagged function (e.g. `subprocess`, `pickle`) | Refactor or add `# nosec` with justification |
-| Postgres connection refused | Service container not ready | The workflow uses health-checks; check `options:` in the YAML |
+| Postgres connection refused | Service container not ready | The reusable workflow uses health-checks on the Postgres service; if you see failures, confirm the `run-pipeline.yml` service definition and health options. |
 | `pytest` collection error | Import error in `src/` | Run `pytest -q` locally with the same `DATABASE_URL` to reproduce |
 | SonarCloud gate fails | Coverage below threshold or new bugs found | Fix the issues reported in the SonarCloud PR comment |
 
@@ -170,3 +181,8 @@ Run this locally before opening a pull request to catch issues that CI will also
 | `CODECOV_TOKEN` | Codecov coverage upload (job 2) |
 | `KAGGLE_USERNAME` | Scheduled pipeline — Kaggle dataset ingest |
 | `KAGGLE_KEY` | Scheduled pipeline — Kaggle dataset ingest |
+
+Additional notes:
+
+- The canonical DDL lives in `src/sql/ddl_create_tables.sql` (loaded via `importlib.resources` in `src.load`). The Python helpers `_apply_ddl()` and `_table_columns()` (in `src.load`) are the preferred way to apply and reflect the schema programmatically; the seed script `.github/scripts/seed_test_db.py` reuses them.
+- Test and coverage artifacts are written to `build/reports/` by default (`junit-report.xml`, `coverage.xml`, `htmlcov/`). Update `pyproject.toml` / `Makefile` if you need a different location.

@@ -1,0 +1,100 @@
+name: Run ETL Pipeline (reusable)
+
+# ── Reusable workflow ────────────────────────────────────────────────────────
+# Called by ci-postgres.yml (test job) and scheduled-pipeline.yml.
+# Owns the Postgres service container so neither caller has to repeat it.
+#
+# Usage:
+#   jobs:
+#     pipeline:
+#       uses: ./.github/workflows/run-pipeline.yml
+#       with:
+#         seed-db: true          # seed fixed test data instead of Kaggle ingest
+#         upload-outputs: false  # skip artifact upload (CI doesn't need it)
+#       secrets: inherit
+
+on:
+  workflow_call:
+    inputs:
+      seed-db:
+        description: >
+          When true, seed the DB with fixed test fixtures via seed_test_db.py.
+          When false, run a live Kaggle ingest (requires KAGGLE_* secrets).
+        type: boolean
+        required: false
+        default: false
+      upload-outputs:
+        description: Upload pipeline output CSVs and Excel report as an artifact.
+        type: boolean
+        required: false
+        default: false
+      artifact-retention-days:
+        description: How long to keep the uploaded artifact (days).
+        type: number
+        required: false
+        default: 30
+    secrets:
+      KAGGLE_USERNAME:
+        required: false
+      KAGGLE_KEY:
+        required: false
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: insurdb
+        options: >-
+          --health-cmd="pg_isready -U postgres -d insurdb"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
+      PYTHONPATH: ${{ github.workspace }}
+      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python-env
+
+      # ── Data ingest ─────────────────────────────────────────────────────────
+      - name: Seed test database
+        if: inputs.seed-db == true
+        run: python .github/scripts/seed_test_db.py
+
+      - name: Ingest Kaggle dataset
+        if: inputs.seed-db == false
+        run: python -m src.load --kaggle-config config/kaggle.yaml
+
+      # ── ETL pipeline ────────────────────────────────────────────────────────
+      - name: Run ETL pipeline
+        uses: ./.github/actions/run-etl
+
+      # ── Upload outputs ──────────────────────────────────────────────────────
+      - name: Upload pipeline outputs
+        if: inputs.upload-outputs == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-outputs-${{ github.run_number }}
+          path: |
+            outputs/kpis.csv
+            outputs/monthly.csv
+            outputs/loss_ratio.csv
+            outputs/network_summary.csv
+            outputs/diagnosis_summary.csv
+            outputs/model_metrics.txt
+            outputs/insurance_summary.xlsx
+          retention-days: ${{ inputs.artifact-retention-days }}

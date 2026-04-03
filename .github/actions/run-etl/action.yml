@@ -1,0 +1,20 @@
+name: Run ETL pipeline steps
+description: >
+  Runs the three ETL steps that are common to both CI and the scheduled
+  pipeline: transform (KPIs), ML model, and Excel report generation.
+  The database must already be populated before this action is called.
+
+runs:
+  using: composite
+  steps:
+    - name: Run transform / KPI aggregation
+      shell: bash
+      run: python -m src.transform
+
+    - name: Run ML model
+      shell: bash
+      run: python -m src.model
+
+    - name: Generate Excel report
+      shell: bash
+      run: python -m src.report --out outputs/insurance_summary.xlsx
