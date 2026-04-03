@@ -57,21 +57,21 @@ jobs:
           while IFS= read -r msg; do
             [ -z "$msg" ] && continue
             lower=$(echo "$msg" | tr '[:upper:]' '[:lower:]')
-            # Strip conventional-commit prefix for display (e.g. "feat: " -> "")
-            display=$(echo "$msg" | sed 's/^[a-zA-Z]*([^)]*): //' | sed 's/^[a-zA-Z]*: //')
-            if echo "$lower" | grep -qE '^(feat|feature|add)[:(]'; then
+            # Strip only known conventional-commit prefixes for display (e.g. "feat: " or "feat!: " -> "")
+            display=$(echo "$msg" | sed -E 's/^(feat|feature|add|fix|bug|bugfix|hotfix|enhance|improvement|improve|perf|refactor|style|chore|docs|ci|test)(\([^)]*\))?!?: //')
+            if echo "$lower" | grep -qE '^(feat|feature|add)(\(|!?:)'; then
               features="$features\n- $display"
-            elif echo "$lower" | grep -qE '^(fix|bug|bugfix|hotfix)[:(]'; then
+            elif echo "$lower" | grep -qE '^(fix|bug|bugfix|hotfix)(\(|!?:)'; then
               fixes="$fixes\n- $display"
-            elif echo "$lower" | grep -qE '^(enhance|improvement|improve|perf|refactor|style|chore|docs|ci|test)[:(]'; then
+            elif echo "$lower" | grep -qE '^(enhance|improvement|improve|perf|refactor|style|chore|docs|ci|test)(\(|!?:)'; then
               enhancements="$enhancements\n- $display"
             else
               # Classify by keyword when no conventional-commit prefix is present
-              if echo "$lower" | grep -qE '\b(add|new|implement|introduc|creat|support)\b'; then
+              if echo "$lower" | grep -qE '(^|[^[:alnum:]_])(add|new|implement|introduc|creat|support)([^[:alnum:]_]|$)'; then
                 features="$features\n- $msg"
-              elif echo "$lower" | grep -qE '\b(fix|bug|resolv|correct|patch|revert)\b'; then
+              elif echo "$lower" | grep -qE '(^|[^[:alnum:]_])(fix|bug|resolv|correct|patch|revert)([^[:alnum:]_]|$)'; then
                 fixes="$fixes\n- $msg"
-              elif echo "$lower" | grep -qE '\b(improve|enhance|optimiz|refactor|updat|upgrad|clean|simplif)\b'; then
+              elif echo "$lower" | grep -qE '(^|[^[:alnum:]_])(improve|enhance|optimiz|refactor|updat|upgrad|clean|simplif)([^[:alnum:]_]|$)'; then
                 enhancements="$enhancements\n- $msg"
               else
                 other="$other\n- $msg"
