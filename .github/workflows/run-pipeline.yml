@@ -28,6 +28,11 @@ on:
         type: boolean
         required: false
         default: false
+      load-dw:
+        description: Build the DuckDB data warehouse from Postgres and CSV outputs.
+        type: boolean
+        required: false
+        default: false
       artifact-retention-days:
         description: How long to keep the uploaded artifact (days).
         type: number
@@ -83,6 +88,11 @@ jobs:
       - name: Run ETL pipeline
         uses: ./.github/actions/run-etl
 
+      # ── DW load ─────────────────────────────────────────────────────────────
+      - name: Load DuckDB data warehouse
+        if: inputs.load-dw == true
+        run: python -m src.dw_load
+
       # ── Upload outputs ──────────────────────────────────────────────────────
       - name: Upload pipeline outputs
         if: inputs.upload-outputs == true
@@ -97,4 +107,5 @@ jobs:
             outputs/diagnosis_summary.csv
             outputs/model_metrics.txt
             outputs/insurance_summary.xlsx
+            outputs/insurance_dw.duckdb
           retention-days: ${{ inputs.artifact-retention-days }}

@@ -31,6 +31,12 @@ CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${A
 pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "${CONSTRAINT_URL}" || \
     echo "⚠️  Airflow install failed — DAG linting may show import errors"
 
+# Airflow's constraint file downgrades SQLAlchemy to 1.x, which breaks pandas 2.x.
+# Re-pin SQLAlchemy to the version required by requirements.txt.
+echo "🔧 Re-pinning SQLAlchemy>=2.0 (overrides Airflow constraint)..."
+pip install "SQLAlchemy>=2.0.0,<3.0.0" --upgrade --quiet || \
+    echo "⚠️  SQLAlchemy re-pin failed"
+
 # Step 3: Set up pre-commit hooks
 echo "🔗 Setting up pre-commit hooks..."
 pre-commit install --install-hooks || echo "⚠️  Pre-commit setup failed, continuing..."

@@ -14,5 +14,6 @@ jobs:
     with:
       seed-db: false # live Kaggle ingest
       upload-outputs: true
+      load-dw: true
       artifact-retention-days: 30
     secrets: inherit
