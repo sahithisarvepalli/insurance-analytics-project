@@ -1,9 +1,9 @@
 name: Scheduled Pipeline
 
 on:
-  # ── Cron: runs daily at 06:30 UTC (parallel to / independent of Airflow) ──
+  # ── Cron: runs daily at 00:00 IST (18:30 UTC) ──────────────────────────────
   schedule:
-    - cron: "30 6 * * *"
+    - cron: "30 18 * * *"
 
   # ── Manual trigger so you can run it on-demand from the Actions tab ────────
   workflow_dispatch:
