@@ -1,1 +1,1 @@
-"""Insurance analytics pipeline: data generation, loading, transformation, and modeling."""
+"""Insurance analytics pipeline: Kaggle data ingestion, loading, transformation, and modeling."""

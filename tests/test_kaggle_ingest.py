@@ -39,6 +39,26 @@ def _sample_claims() -> pd.DataFrame:
     )
 
 
+def _sample_claims_with_demographics() -> pd.DataFrame:
+    """Return a claims DataFrame that includes Kaggle demographic columns."""
+    return pd.DataFrame(
+        {
+            "member_id": [1, 2, 3, 1],
+            "provider_id": [10, 10, 20, 20],
+            "paid_amount": [100.0, 200.0, 150.0, 50.0],
+            "age": [30, 45, 25, 30],
+            "gender": ["M", "F", "M", "M"],
+            "region": ["East", "West", "North", "East"],
+            "service_date": ["2023-01-01"] * 4,
+            "diagnosis_code": ["Z00"] * 4,
+            "procedure_code": ["99213"] * 4,
+            "billed_amount": [120.0, 220.0, 170.0, 60.0],
+            "allowed_amount": [110.0, 210.0, 160.0, 55.0],
+            "place_of_service": ["Office"] * 4,
+        }
+    )
+
+
 # ────────────────────────────────────────────────────────────────────────────
 # _apply_mapping
 # ────────────────────────────────────────────────────────────────────────────
@@ -117,8 +137,42 @@ def test_derive_members_ids_match_claims():
 
 
 @pytest.mark.unit
-def test_derive_members_reproducible_with_same_seed():
+def test_derive_members_uses_age_column_when_present():
+    """When claims carry an 'age' column the derived dob must reflect it."""
+    claims = _sample_claims_with_demographics()
+    members = _derive_members(claims)
+    # DOB should not be NaT when age is available
+    assert members["dob"].notna().all()
+
+
+@pytest.mark.unit
+def test_derive_members_uses_gender_column_when_present():
+    claims = _sample_claims_with_demographics()
+    members = _derive_members(claims)
+    assert set(members["gender"]).issubset({"M", "F"})
+
+
+@pytest.mark.unit
+def test_derive_members_uses_region_column_when_present():
+    claims = _sample_claims_with_demographics()
+    members = _derive_members(claims)
+    assert set(members["region"]).issubset({"East", "West", "North", "South"})
+
+
+@pytest.mark.unit
+def test_derive_members_falls_back_to_defaults_without_demographic_columns():
+    """Without demographic columns, dob is NaT and defaults are applied."""
     claims = _sample_claims()
+    members = _derive_members(claims)
+    assert (members["gender"] == "U").all()
+    assert (members["region"] == "Unknown").all()
+    assert members["dob"].isna().all()
+
+
+@pytest.mark.unit
+def test_derive_members_is_deterministic():
+    """Derivation must produce identical results on repeated calls (no randomness)."""
+    claims = _sample_claims_with_demographics()
     m1 = _derive_members(claims)
     m2 = _derive_members(claims)
     pd.testing.assert_frame_equal(m1, m2)
@@ -148,6 +202,24 @@ def test_derive_providers_ids_match_claims():
     claims = _sample_claims()
     providers = _derive_providers(claims)
     assert set(providers["provider_id"]) == set(claims["provider_id"].unique())
+
+
+@pytest.mark.unit
+def test_derive_providers_uses_schema_defaults():
+    """Derived providers must use deterministic schema defaults, not random values."""
+    providers = _derive_providers(_sample_claims())
+    assert (providers["specialty"] == "Unknown").all()
+    assert providers["in_network"].all()
+    assert (providers["region"] == "Unknown").all()
+
+
+@pytest.mark.unit
+def test_derive_providers_is_deterministic():
+    """Derivation must produce identical results on repeated calls (no randomness)."""
+    claims = _sample_claims()
+    p1 = _derive_providers(claims)
+    p2 = _derive_providers(claims)
+    pd.testing.assert_frame_equal(p1, p2)
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -413,6 +485,46 @@ def test_load_kaggle_data_triggers_download_when_configured_file_absent(tmp_path
     monkeypatch.setattr("src.kaggle_ingest.download_dataset", fake_download)
     load_kaggle_data(cfg_path)
     assert download_called, "download_dataset should be called when configured file is absent"
+
+
+@pytest.mark.unit
+def test_load_kaggle_data_derived_members_use_kaggle_demographics(tmp_path):
+    """Members derived from Kaggle claims must reflect age, gender, and region columns."""
+    dest_dir = tmp_path / "kaggle"
+    dest_dir.mkdir(parents=True)
+    claims_path = dest_dir / "claims.csv"
+    pd.DataFrame(
+        {
+            "member_id": [1, 2],
+            "provider_id": [10, 10],
+            "paid_amount": [100.0, 200.0],
+            "age": [30, 45],
+            "gender": ["M", "F"],
+            "region": ["East", "West"],
+        }
+    ).to_csv(claims_path, index=False)
+    cfg_path = _write_config(tmp_path)
+    result = load_kaggle_data(cfg_path)
+    members = result["members"]
+    assert members["dob"].notna().all(), "dob must be derived from age"
+    assert set(members["gender"]).issubset({"M", "F"})
+    assert set(members["region"]).issubset({"East", "West"})
+
+
+@pytest.mark.unit
+def test_load_kaggle_data_derived_providers_use_schema_defaults(tmp_path):
+    """Derived providers must use deterministic schema defaults, not random values."""
+    dest_dir = tmp_path / "kaggle"
+    _write_claims_csv(dest_dir)
+    cfg_path = _write_config(
+        tmp_path,
+        defaults={"claims": {"member_id": 1, "provider_id": 1}},
+    )
+    result = load_kaggle_data(cfg_path)
+    providers = result["providers"]
+    assert (providers["specialty"] == "Unknown").all()
+    assert providers["in_network"].all()
+    assert (providers["region"] == "Unknown").all()
 
 
 @pytest.mark.unit
