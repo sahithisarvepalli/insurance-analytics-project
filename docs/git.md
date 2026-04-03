@@ -1,91 +1,62 @@
-## Troubleshooting
+# 🐙 Git & Dev Container Tips
 
-### Git shows all files as changed inside Dev Container
-
-When opening the project in a **VS Code Dev Container**, you may see many files appear in the **Source Control "Changes" section**, even though those files are already committed in GitHub.
-
-This usually happens because the container environment handles **line endings or file permissions differently** than the host system.
+> **Concept:** Git tracks changes to your code. Sometimes the Dev Container environment (Linux inside Docker) sees files differently than your host machine (Windows/Mac), which causes Git to show false changes.
 
 ---
 
-### 1. Check Git status inside the container
+## 🔍 Problem: All Files Show as "Changed" in Dev Container
 
-Open a terminal in the Dev Container and run:
+This is usually caused by **line ending differences** (Windows uses `CRLF`, Linux uses `LF`) or **file permission** differences between your host OS and the container.
 
+```
+Host (Windows/Mac)           Dev Container (Linux)
+   CRLF line endings    ≠       LF line endings
+   chmod 755 files      ≠       chmod 644 files
+         ↓
+   Git sees everything as "modified" even though content is the same
+```
+
+---
+
+## 🛠️ Fix It
+
+**Step 1 — Check what Git sees:**
 ```bash
 git status
 ```
 
-This will show what Git inside the container believes has changed.
-
----
-
-### 2. Fix line ending issues
-
-If your host machine uses different line endings (e.g., Windows CRLF vs Linux LF), Git may mark all files as modified.
-
-Run:
-
+**Step 2 — Fix line endings:**
 ```bash
 git config --global core.autocrlf input
-```
-
-Then reset the repository state:
-
-```bash
 git reset --hard HEAD
 ```
 
----
-
-### 3. Fix file permission differences
-
-Linux containers sometimes change executable file permissions, causing Git to detect changes.
-
-Check the current setting:
-
-```bash
-git config core.fileMode
-```
-
-If it returns `true`, disable it:
-
+**Step 3 — Fix file permission noise (if still showing changes):**
 ```bash
 git config core.fileMode false
-```
-
-Then reset again:
-
-```bash
 git reset --hard HEAD
 ```
 
----
-
-### 4. Synchronize with the remote repository
-
-Ensure the container has the latest commits:
-
+**Step 4 — Sync with remote:**
 ```bash
-git fetch
-git pull
+git fetch && git pull
 ```
 
 ---
 
-### 5. Verify the repository root
+## 🛡️ Prevent It Permanently
 
-Ensure the container is opened at the correct repository root:
+Add a `.gitattributes` file at the repo root:
 
-```bash
-git rev-parse --show-toplevel
 ```
+* text=auto eol=lf
+```
+
+This auto-detects text files and enforces Linux-style line endings everywhere, regardless of the contributor's OS.
 
 ---
 
-### 6. Commit changes from the Dev Container
-
-After resolving the issues, you can commit and push changes directly from the Dev Container:
+## 💾 Committing from Inside the Dev Container
 
 ```bash
 git add .
@@ -93,22 +64,13 @@ git commit -m "your message"
 git push
 ```
 
-You can also use the **VS Code Source Control panel** inside the Dev Container to commit and push changes.
+Or use the **VS Code Source Control panel** (left sidebar `⎇` icon) — works the same inside the container.
 
 ---
 
-### 7. Prevent future line ending issues
+## ✅ Verify Your Setup
 
-Add a `.gitattributes` file in the repository root:
-
-```text
-* text=auto
+```bash
+git rev-parse --show-toplevel   # confirm you're at the repo root
+git log --oneline -5            # see recent commits
 ```
-
-Or enforce Linux-style line endings:
-
-```text
-* text eol=lf
-```
-
-This ensures consistent line endings across different environments.
