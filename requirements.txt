@@ -14,37 +14,24 @@ pyyaml>=6.0.0,<7.0.0
 kaggle>=1.6.0,<3.0.0
 
 # ============================================
-# Modeling, ML & Visualization
+# Modeling & ML
 # ============================================
 scikit-learn>=1.4.0,<2.0.0
-matplotlib>=3.8.0,<4.0.0
-seaborn>=0.13.0,<1.0.0
-plotly>=5.18.0,<6.0.0
 
-# ============================================
-# Jupyter & Notebooks
-# ============================================
-jupyter>=1.0.0,<2.0.0
-jupyterlab>=4.0.0,<5.0.0
-ipykernel>=6.27.0,<7.0.0
-notebook>=7.0.0,<8.0.0
-ipywidgets>=8.1.0,<9.0.0
-nbformat>=5.9.0,<6.0.0
+# Note: matplotlib, seaborn, plotly and all Jupyter packages have been moved
+# to requirements-notebooks.txt — they are not used by the core pipeline.
 
 # ============================================
 # Development & Testing
 # ============================================
 pytest>=8.0.0,<9.0.0
 pytest-cov>=4.1.0,<5.0.0
-pytest-xdist>=3.5.0,<4.0.0
 pytest-mock>=3.12.0,<4.0.0
 black>=24.1.0,<25.0.0
 flake8>=7.0.0,<8.0.0
 isort>=5.13.0,<6.0.0
 mypy>=1.8.0,<2.0.0
-alembic>=1.13.0,<2.0.0
 openpyxl>=3.1.0,<4.0.0
-python-dotenv>=1.0.0,<2.0.0
 
 # ============================================
 # Code Quality & Linting
@@ -54,23 +41,12 @@ bandit>=1.7.0,<2.0.0
 radon>=6.0.0,<7.0.0
 pylint>=3.0.0,<4.0.0
 pre-commit>=3.6.0,<4.0.0
+docformatter>=1.7.0,<2.0.0
+
+# Used by `make quality` (cohesion -d src, vulture src, xenon src),
+# `make security` (safety check), and `make docs` / check-quality.sh (pydocstyle src)
 safety>=2.3.0,<3.0.0
 vulture>=2.10,<3.0.0
 xenon>=0.9.0,<1.0.0
 cohesion>=1.0.0,<2.0.0
-eradicate>=2.3.0,<3.0.0
-dlint>=0.14.0,<1.0.0
 pydocstyle>=6.3.0,<7.0.0
-docformatter>=1.7.0,<2.0.0
-yapf>=0.40.0,<1.0.0
-autoflake>=2.2.0,<3.0.0
-pyupgrade>=3.15.0,<4.0.0
-add-trailing-comma>=3.1.0,<4.0.0
-reorder-python-imports>=3.12.0,<4.0.0
-
-# ============================================
-# Utilities & Logging
-# ============================================
-requests==2.31.0
-python-dateutil==2.8.2
-pytz==2024.1
