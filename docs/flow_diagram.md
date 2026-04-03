@@ -1,42 +1,79 @@
-# Insurance Analytics Pipeline — Flow Diagram
+# 🗺️ Data Flow Diagram
 
-Flow diagram describing the repository pipeline: Kaggle data ingestion, transform, modeling, and reporting.
+> **Concept:** This diagram shows how data moves through the pipeline — from Kaggle download all the way to the final Excel report.
 
 ```mermaid
 flowchart TD
-  subgraph Kaggle_Path[Kaggle ingest path]
-    KI["kaggle_ingest.py\n(download dataset → map columns)"] --> LD["load.py\n(truncate + write DataFrames → DB)"]
-  end
+    classDef ingestion fill:#fce4ec,stroke:#e91e63,color:#000
+    classDef storage   fill:#e3f2fd,stroke:#1976d2,color:#000
+    classDef compute   fill:#e8f5e9,stroke:#388e3c,color:#000
+    classDef output    fill:#fff8e1,stroke:#f57f17,color:#000
+    classDef infra     fill:#ede7f6,stroke:#7b1fa2,color:#000
 
-  LD --> DB["Postgres DB\nschema: insurance\n(member / provider / claim)"]
+    subgraph Ingest["📥 Ingest"]
+        KI["kaggle_ingest.py\nDownload + map columns"]
+        LD["load.py\nTruncate + write to DB"]
+        KI --> LD
+    end
 
-  utils["utils.py\n(get_engine(), load_config())"] --> LD
-  utils --> TR["transform.py\n(read joined tables; compute KPIs; write outputs)"]
-  utils --> MO["model.py\n(aggregate, train, write outputs/model_metrics.txt)"]
+    subgraph DB["🗄️ PostgreSQL (insurance schema)"]
+        direction LR
+        M["👤 member"]
+        P["🏥 provider"]
+        C["💊 claim"]
+    end
 
-  DB --> TR
-  TR --> OUT1["outputs/kpis.csv"]
-  TR --> OUT2["outputs/monthly.csv"]
-  TR --> OUT3["outputs/loss_ratio.csv"]
-  TR --> OUT4["outputs/network_summary.csv"]
-  TR --> OUT5["outputs/diagnosis_summary.csv"]
+    subgraph Transform["🔧 Transform"]
+        TR["transform.py\nJoin tables · compute KPIs\ntrends · loss ratios"]
+    end
 
-  DB --> MO
-  MO --> OUT6["outputs/model_metrics.txt"]
+    subgraph Model["🤖 ML Model"]
+        MO["model.py\nLabel high-cost members\ntrain logistic regression"]
+    end
 
-  OUT1 --> RP["report.py\n(combine outputs → Excel)"]
-  OUT2 --> RP
-  OUT3 --> RP
-  OUT4 --> RP
-  OUT5 --> RP
-  OUT6 --> RP
-  RP --> EXC["outputs/insurance_summary.xlsx\n(KPIs / Monthly / LossRatio /\nNetworkUtilization / DiagnosisSummary /\nModel_Metrics)"]
+    subgraph Outputs["📁 outputs/"]
+        CSV1["kpis.csv"]
+        CSV2["monthly.csv"]
+        CSV3["loss_ratio.csv"]
+        CSV4["network_summary.csv"]
+        CSV5["diagnosis_summary.csv"]
+        TXT["model_metrics.txt"]
+    end
 
-  TESTS["tests/test_db.py\n(integration: assert insurance tables exist)"] -->|queries| DB
+    subgraph Report["📊 Report"]
+        RP["report.py\nCombine all outputs"]
+        XL["insurance_summary.xlsx\n6-sheet workbook"]
+        RP --> XL
+    end
 
-  style Kaggle_Path fill:#f9f,stroke:#333,stroke-width:1px
-  style utils fill:#e0f7fa,stroke:#333
-  style TR fill:#e8f5e9
-  style MO fill:#f3e5f5
-  style RP fill:#fff3e0
+    subgraph Infra["⚙️ Infrastructure"]
+        UT["utils.py\nDB connection · config loader"]
+    end
+
+    KI -->|"Kaggle API"| KI
+    LD --> M & P & C
+    UT -->|"shared by"| LD & TR & MO
+    M & P & C --> TR & MO
+    TR --> CSV1 & CSV2 & CSV3 & CSV4 & CSV5
+    MO --> TXT
+    CSV1 & CSV2 & CSV3 & CSV4 & CSV5 & TXT --> RP
+
+    class KI,LD ingestion
+    class M,P,C storage
+    class TR,MO compute
+    class CSV1,CSV2,CSV3,CSV4,CSV5,TXT,XL output
+    class UT infra
 ```
+
+---
+
+## 📋 Key Data Handoffs
+
+| From | To | What passes |
+|------|-----|------------|
+| `kaggle_ingest.py` | `load.py` | Pandas DataFrames (member, provider, claim) |
+| `load.py` | PostgreSQL | 3 relational tables |
+| PostgreSQL | `transform.py` | SQL JOINed query results |
+| `transform.py` | `outputs/` | 5 CSV files |
+| `model.py` | `outputs/` | `model_metrics.txt` |
+| `outputs/` | `report.py` | 6 files → 6 Excel sheets |
