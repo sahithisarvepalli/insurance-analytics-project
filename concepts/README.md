@@ -67,10 +67,10 @@ This folder contains small, standalone Python scripts to help you understand and
 **Experiment**: Change distributions (e.g., use normal instead of uniform).
 
 ### 6. 06_ml_basics.py
-**Purpose**: Introduction to machine learning pipelines with scikit-learn.
+**Purpose**: Introduction to binary classification with logistic regression using scikit-learn.
 **How to Run**: `python concepts/06_ml_basics.py`
-**What It Does**: Trains a simple classifier on synthetic data, prints accuracy.
-**Experiment**: Try a different model (e.g., RandomForest) or add features.
+**What It Does**: Generates synthetic insurance-like data, labels high-cost members (top 10th percentile), trains a logistic regression classifier with preprocessing, and prints accuracy.
+**Experiment**: Try a different model (e.g., RandomForest) or add more features.
 
 ### 7. 07_logging.py
 **Purpose**: Use Python's logging module for debugging and info messages.
@@ -87,8 +87,8 @@ This folder contains small, standalone Python scripts to help you understand and
 ### 9. 09_excel_report.py
 **Purpose**: Create Excel reports with multiple sheets using pandas.
 **How to Run**: `python concepts/09_excel_report.py`
-**What It Does**: Writes sample data to an Excel file with sheets.
-**Experiment**: Add more sheets or format the Excel (colors, etc.).
+**What It Does**: Writes sample insurance KPI, monthly trend, and model metrics data to an Excel workbook — mirroring the structure of `src/report.py`.
+**Experiment**: Add more sheets (e.g., LossRatio, NetworkUtilization) or format cells with openpyxl.
 
 ### 10. 10_testing_basics.py
 **Purpose**: Write and run unit tests with pytest.

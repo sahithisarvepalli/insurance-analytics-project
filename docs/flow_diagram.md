@@ -1,41 +1,40 @@
 # Insurance Analytics Pipeline — Flow Diagram
 
-Flow diagram describing the repository pipeline: data generation, ingestion, transform, modeling, and reporting.
+Flow diagram describing the repository pipeline: Kaggle data ingestion, transform, modeling, and reporting.
 
 ```mermaid
 flowchart TD
-  subgraph CSV_Path[CSV path]
-    GS["generate_synthetic.py\n(write CSVs to data/)"] --> CSVS["data/sample_members.csv\ndata/sample_providers.csv\ndata/sample_claims.csv"]
+  subgraph Kaggle_Path[Kaggle ingest path]
+    KI["kaggle_ingest.py\n(download dataset → map columns)"] --> LD["load.py\n(truncate + write DataFrames → DB)"]
   end
 
-  subgraph DB_Path[DB ingestion]
-    SD["seed.py\n(write DataFrames -> DB)"] --> DB["Postgres DB\nschema: insurance"]
-    LD["load.py\n(--from-csv: read CSVs -> DB)"] --> DB
-  end
+  LD --> DB["Postgres DB\nschema: insurance\n(member / provider / claim)"]
 
-  CSVS -->|optional: read by| LD
-
-  utils["utils.py\n(get_engine(), load_config())"] --> SD
-  utils --> LD
+  utils["utils.py\n(get_engine(), load_config())"] --> LD
   utils --> TR["transform.py\n(read joined tables; compute KPIs; write outputs)"]
   utils --> MO["model.py\n(aggregate, train, write outputs/model_metrics.txt)"]
 
   DB --> TR
   TR --> OUT1["outputs/kpis.csv"]
   TR --> OUT2["outputs/monthly.csv"]
+  TR --> OUT3["outputs/loss_ratio.csv"]
+  TR --> OUT4["outputs/network_summary.csv"]
+  TR --> OUT5["outputs/diagnosis_summary.csv"]
 
   DB --> MO
-  MO --> OUT3["outputs/model_metrics.txt"]
+  MO --> OUT6["outputs/model_metrics.txt"]
 
-  OUT1 --> RP["report.py\n(combine outputs -> Excel)"]
+  OUT1 --> RP["report.py\n(combine outputs → Excel)"]
   OUT2 --> RP
   OUT3 --> RP
-  RP --> EXC["outputs/insurance_summary.xlsx"]
+  OUT4 --> RP
+  OUT5 --> RP
+  OUT6 --> RP
+  RP --> EXC["outputs/insurance_summary.xlsx\n(KPIs / Monthly / LossRatio /\nNetworkUtilization / DiagnosisSummary /\nModel_Metrics)"]
 
   TESTS["tests/test_db.py\n(integration: assert insurance tables exist)"] -->|queries| DB
 
-  style CSV_Path fill:#f9f,stroke:#333,stroke-width:1px
-  style DB_Path fill:#fffbcc,stroke:#333,stroke-width:1px
+  style Kaggle_Path fill:#f9f,stroke:#333,stroke-width:1px
   style utils fill:#e0f7fa,stroke:#333
   style TR fill:#e8f5e9
   style MO fill:#f3e5f5

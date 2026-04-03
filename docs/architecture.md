@@ -6,15 +6,9 @@ The pipeline is a linear, stage-gated ETL + ML workflow. Each stage has a single
 
 ```
   ┌──────────────────────┐
-  │  Data Generation     │  Produces reproducible synthetic datasets
-  │  (members/providers/ │  representing the insurance domain entities
-  │   claims)            │
-  └──────────┬───────────┘
-             │ flat files (CSV)
-             ▼
-  ┌──────────────────────┐
-  │  Load / Ingest       │  Validates, normalises, and persists
-  │                      │  all entities atomically into the database
+  │  Kaggle Ingest       │  Downloads a public insurance dataset from
+  │  (kaggle_ingest.py   │  Kaggle, maps columns to the pipeline schema,
+  │   + load.py)         │  and persists all entities atomically into the DB
   └──────────┬───────────┘
              │ relational tables
              ▼
@@ -23,7 +17,7 @@ The pipeline is a linear, stage-gated ETL + ML workflow. Each stage has a single
   │                      │  (age bands, network status, loss ratios),
   │                      │  and writes aggregated summaries
   └──────────┬───────────┘
-             │ aggregated outputs
+             │ aggregated outputs (5 CSVs)
              ▼
   ┌──────────────────────┐
   │  ML Modelling        │  Builds a binary classification model to
@@ -32,12 +26,11 @@ The pipeline is a linear, stage-gated ETL + ML workflow. Each stage has a single
              │ model metrics
              ▼
   ┌──────────────────────┐
-  │  Reporting           │  Consolidates KPIs, trends, and model results
-  │                      │  into a multi-sheet workbook for stakeholders
+  │  Reporting           │  Consolidates KPIs, trends, loss ratios,
+  │                      │  network utilization, diagnosis summary,
+  │                      │  and model results into a multi-sheet workbook
   └──────────────────────┘
 ```
-
-**Alternate ingest path** — data can bypass the CSV stage and be seeded directly into the database from the generation layer, useful for CI and rapid iteration.
 
 ---
 
@@ -47,8 +40,7 @@ This project intentionally mirrors SAS workflows in Python. The table below maps
 
 | Pipeline Stage | SAS Equivalent |
 |----------------|---------------|
-| Synthetic data generation | `PROC SURVEYSELECT`, `PROC SQL` with `RAND()` |
-| Load / Ingest | `PROC IMPORT`, `LIBNAME` engine |
+| Kaggle data ingest | `PROC IMPORT`, `LIBNAME` engine |
 | KPI aggregation | `PROC MEANS`, `PROC SQL GROUP BY` |
 | ML classification model | `PROC LOGISTIC` |
 | Excel report | `ODS Excel` |
@@ -72,9 +64,12 @@ The relational model uses a single schema (`insurance`) with a classic star-like
 | **Member** | Enrollee / patient demographics | Date of birth, gender, region, coverage effective and termination dates |
 | **Provider** | Healthcare provider registry | Specialty, network participation flag, region |
 | **Claim** | Raw submitted claims | Service date, billed / allowed / paid amounts, diagnosis code, procedure code, place of service |
-| **Claims Enhanced** | Enriched claims (derived layer) | Calculated fields added during transformation (age, age band, etc.) |
-| **KPI Summary** | Aggregated business metrics | Claim frequency, paid totals, averages — grouped by age band, region, network status |
-| **Model Predictions** | Scored output | High-cost probability and flag per member |
+| **KPI Summary** (`outputs/kpis.csv`) | Aggregated business metrics | Claim frequency, paid totals, averages — grouped by age band, region, network status |
+| **Monthly** (`outputs/monthly.csv`) | Monthly trend summary | Claim counts and paid totals by calendar month, region, and network status |
+| **Loss Ratio** (`outputs/loss_ratio.csv`) | Financial ratios | Paid vs billed vs allowed amounts with loss ratio and allowed ratio percentages |
+| **Network Utilization** (`outputs/network_summary.csv`) | In/out-of-network breakdown | Claim counts, costs, and utilization percentages by network status |
+| **Diagnosis Summary** (`outputs/diagnosis_summary.csv`) | Diagnosis code analysis | Claims and costs ranked by ICD diagnosis code |
+| **Model Predictions** (`outputs/model_metrics.txt`) | Scored output | Accuracy metric from the high-cost logistic regression model |
 
 Full DDL: [`sql/ddl_create_tables.sql`](../sql/ddl_create_tables.sql)
 
@@ -84,13 +79,12 @@ Full DDL: [`sql/ddl_create_tables.sql`](../sql/ddl_create_tables.sql)
 
 | Component | Role in Architecture |
 |-----------|---------------------|
-| **Data Generation** | Produces statistically representative synthetic data for all three core entities; primary keys must be unique |
+| **Kaggle Ingest** | Downloads a public insurance dataset from Kaggle via the Kaggle API; maps source column names to the pipeline schema; injects schema-level defaults for required columns absent in the source file; auto-derives member and provider tables when not explicitly provided |
 | **Configuration / Connection** | Resolves database credentials from environment variables or a config file; credentials must never appear in logs |
-| **Ingest (CSV path)** | Normalises date representations across tool versions before writing; all entity writes are a single all-or-nothing transaction |
-| **Ingest (direct seed path)** | Generates and persists data in one step without a CSV intermediate; same atomicity guarantee as the CSV path |
-| **Transform** | Joins the three core entities; derives age and age-band from date of birth; computes claim frequency, paid totals, and monthly trends |
+| **Load** | Truncates and reloads the three core entity tables in a single atomic transaction; idempotent — safe to re-run |
+| **Transform** | Joins the three core entities; derives age and age-band from date of birth; computes claim frequency, paid totals, monthly trends, loss ratios, network utilization, and diagnosis-level summaries |
 | **ML Model** | Labels the top-decile of total paid amount as high-cost; scales continuous features before encoding categoricals; applies class-weight correction for the resulting label imbalance |
-| **Report** | Reads pipeline outputs and assembles them into a structured Excel workbook |
+| **Report** | Reads all pipeline outputs (kpis.csv, monthly.csv, loss_ratio.csv, network_summary.csv, diagnosis_summary.csv, model_metrics.txt) and assembles them into a structured six-sheet Excel workbook |
 
 ---
 
@@ -98,14 +92,14 @@ Full DDL: [`sql/ddl_create_tables.sql`](../sql/ddl_create_tables.sql)
 
 **Single responsibility per stage** — each pipeline stage does exactly one thing. This makes stages independently testable and replaceable without touching adjacent stages.
 
-**Atomic persistence** — the ingest stage treats the full set of entity tables as one logical unit. A failure in any single table write rolls back all writes in that batch, preventing partial / inconsistent state in the database. This is the Python equivalent of wrapping multiple SAS `PROC APPEND` calls inside a single database transaction.
+**Atomic persistence** — the ingest stage treats the full set of entity tables as one logical unit. It truncates and reloads all three tables inside a single database transaction. A failure in any single table write rolls back all writes in that batch, preventing partial / inconsistent state in the database. This is the Python equivalent of wrapping multiple SAS `PROC APPEND` calls inside a single database transaction.
 
-**Reproducible data generation** — synthetic data is produced from a seeded random number generator. Given the same seed and row counts, the output is byte-for-byte identical across environments, which is critical for deterministic CI runs and reproducible ML experiments.
+**Schema-flexible Kaggle ingest** — real-world public datasets rarely match an internal schema out of the box. The Kaggle ingest layer uses a declarative YAML config (`config/kaggle.yaml`) to rename columns and inject defaults for missing fields, decoupling the pipeline schema from the source dataset structure. Switching to a different Kaggle dataset requires only a config change.
 
-**Entity key integrity** — primary keys in generated data must be unique. Key generation uses sampling without replacement rather than random draw-with-replacement to guarantee this at the generation layer, before any database constraint is encountered.
+**Idempotent ingest** — running the load step multiple times produces the same result. The loader truncates existing data before inserting, so re-running the pipeline does not accumulate duplicates.
 
 **Correct ML preprocessing** — features with different scales must be normalised before entering a linear model. Numeric features (e.g. age) are standardised; categorical features are one-hot encoded. The label is highly imbalanced (top-decile threshold → ~10 % positive), so class weighting is applied during training to prevent the model from collapsing to the majority class.
 
-**Credential safety** — database passwords must never appear in log output. The connection layer redacts credentials from any logged connection string before writing to any output.
+**Credential safety** — database passwords and Kaggle API keys must never appear in log output. The connection layer redacts credentials from any logged connection string before writing to any output.
 
-**Date portability** — date serialisation formats can vary across tool versions. The ingest layer detects and normalises alternative representations (e.g. epoch-nanosecond integers written by older tooling) to a canonical date type before the database write.
+**Rich transform outputs** — the transform stage produces five separate CSV files (KPI summary, monthly trends, loss ratios, network utilization, and diagnosis summary) so that each can be consumed independently by reporting tools, dashboards, or downstream pipelines.

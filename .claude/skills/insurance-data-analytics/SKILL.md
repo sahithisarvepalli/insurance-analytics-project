@@ -5,23 +5,31 @@ description: Instructions for processing insurance claims data using Python and 
 
 # Insurance Data Analytics Skill
 
-This skill covers how to work with insurance claims data in this project using Python and the Pandas library. The project follows an ETL (Extract → Transform → Load) pattern with three core stages: synthetic data generation, database loading, and transformation into KPI outputs.
+This skill covers how to work with insurance claims data in this project using Python and the Pandas library. The project follows an ETL (Extract → Transform → Load) pattern with three core stages: Kaggle data ingest, database loading, and transformation into KPI outputs.
 
 ## Project layout
 
 ```
 src/
-  generate_synthetic.py   # Creates fake member, provider, and claims CSV files
-  load.py                 # Reads CSVs and writes them to PostgreSQL
+  kaggle_ingest.py        # Downloads Kaggle datasets and maps columns to pipeline schema
+  load.py                 # Loads mapped DataFrames into PostgreSQL (truncate + insert)
   transform.py            # Joins tables, derives KPIs, and writes outputs/
-  model.py                # (Optional) machine-learning utilities
-  report.py               # Report generation helpers
-  seed.py                 # Database seeding helpers
+  model.py                # Logistic regression: identifies high-cost members
+  report.py               # Assembles outputs into a multi-sheet Excel workbook
   utils.py                # Shared helpers: get_engine(), logger
+config/
+  kaggle.yaml             # Kaggle dataset selection and column-mapping config
+  db.yaml                 # Database connection config
 outputs/
-  kpis.csv                # Aggregated KPIs produced by transform.py
-  monthly.csv             # Monthly rollup produced by transform.py
-data/                     # Generated CSV files (not committed)
+  kpis.csv                # KPI aggregation by age band / region / network
+  monthly.csv             # Monthly claims trend
+  loss_ratio.csv          # Paid vs billed vs allowed ratios by region / network
+  network_summary.csv     # In-network vs out-of-network utilization
+  diagnosis_summary.csv   # Claims ranked by ICD diagnosis code
+  model_metrics.txt       # Model accuracy from the logistic regression run
+  insurance_summary.xlsx  # Six-sheet Excel report combining all the above
+data/
+  kaggle/                 # Cached Kaggle downloads (not committed)
 ```
 
 ## Key data tables
@@ -32,26 +40,22 @@ data/                     # Generated CSV files (not committed)
 | `insurance.provider` | `provider_id`, `specialty`, `in_network`, `region` |
 | `insurance.claim` | `claim_id`, `member_id`, `provider_id`, `service_date`, `diagnosis_code`, `procedure_code`, `billed_amount`, `allowed_amount`, `paid_amount`, `place_of_service` |
 
-## How to generate and load data
+## How to load data (Kaggle ingest)
 
 ```bash
-# 1. Generate synthetic CSV files into data/
-python -m src.generate_synthetic \
-    --rows-members 2000 \
-    --rows-providers 300 \
-    --rows-claims 5000 \
-    --out-dir data/
+# Set Kaggle credentials (or place ~/.kaggle/kaggle.json)
+export KAGGLE_USERNAME=your_username
+export KAGGLE_KEY=your_api_key
 
-# 2. Load the CSVs into PostgreSQL
-python -m src.load --from-csv \
-    --members  data/sample_members.csv \
-    --providers data/sample_providers.csv \
-    --claims   data/sample_claims.csv
+# Download the Kaggle dataset and load into PostgreSQL
+python -m src.load --kaggle-config config/kaggle.yaml
 
 # Or use the Makefile shortcut
-make data-gen
-make load-data
+make kaggle-load
 ```
+
+The active dataset is controlled by `active_dataset` in `config/kaggle.yaml`.
+Column mappings and defaults for absent columns are also defined there.
 
 ## How to run the transform
 
@@ -59,14 +63,16 @@ make load-data
 python -m src.transform
 ```
 
-`transform.py` does the following steps (good to understand as a learner):
+`transform.py` does the following steps:
 
 1. **Query** – joins `claim`, `member`, and `provider` into one DataFrame using `pd.read_sql`.
 2. **Derive age** – calculates each member's age from `dob` and today's date.
 3. **Age bands** – uses `pd.cut()` to bucket ages into `0-18`, `19-30`, `31-45`, `46-60`, `60+`.
-4. **KPI aggregation** – groups by `age_band`, `member_region`, and `in_network`; computes claim count, total paid, and average paid.
-5. **Monthly summary** – groups by year-month, region, and in-network flag.
-6. **Write outputs** – saves `outputs/kpis.csv` and `outputs/monthly.csv`.
+4. **KPI aggregation** – groups by `age_band`, `member_region`, and `in_network`; computes claim count, total paid, and average paid → `outputs/kpis.csv`.
+5. **Monthly summary** – groups by year-month, region, and in-network flag → `outputs/monthly.csv`.
+6. **Loss ratio** – computes paid/billed and allowed/billed ratios by region and network status → `outputs/loss_ratio.csv`.
+7. **Network utilization** – in-network vs out-of-network claim counts and cost percentages → `outputs/network_summary.csv`.
+8. **Diagnosis summary** – claims and costs ranked by ICD diagnosis code → `outputs/diagnosis_summary.csv`.
 
 ## Pandas patterns used in this project
 

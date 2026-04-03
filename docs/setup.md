@@ -35,18 +35,19 @@ docker run --name insurdb \
 # 5. Environment variable
 export DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
 
-# 6. Schema
+# 6. Kaggle credentials (required to download the dataset)
+export KAGGLE_USERNAME=your_kaggle_username
+export KAGGLE_KEY=your_kaggle_api_key
+# Alternatively, place ~/.kaggle/kaggle.json (downloaded from kaggle.com → Account → API)
+
+# 7. Schema
 psql "$DATABASE_URL" -c "CREATE SCHEMA IF NOT EXISTS insurance;"
 psql "$DATABASE_URL" -f sql/ddl_create_tables.sql
 
-# 7. Data
-python -m src.generate_synthetic --rows-members 2000 --rows-providers 300 --rows-claims 5000 --out-dir data/
-python -m src.load --from-csv \
-  --members data/sample_members.csv \
-  --providers data/sample_providers.csv \
-  --claims data/sample_claims.csv
+# 8. Data — download from Kaggle and load into the database
+python -m src.load --kaggle-config config/kaggle.yaml
 
-# 8. Run pipeline
+# 9. Run pipeline
 python -m src.transform
 python -m src.model
 python -m src.report --out outputs/insurance_summary.xlsx
@@ -86,6 +87,9 @@ After the build, everything is ready — run `make help` to see all tasks.
 | `DB_USER` | `postgres` | Postgres user |
 | `DB_PASS` | `postgres` | Postgres password |
 | `DB_NAME` | `insurdb` | Database name |
+| `KAGGLE_USERNAME` | — | Kaggle account username (required for data ingest) |
+| `KAGGLE_KEY` | — | Kaggle API key (required for data ingest) |
+| `KAGGLE_CONFIG` | `config/kaggle.yaml` | Path to the Kaggle dataset YAML config |
 
 Copy `.env.example` to `.env` for local development (never commit `.env`).
 
@@ -123,4 +127,4 @@ jupyter lab --port=8890
 ```
 
 **Duplicate data after re-running load**
-The load uses `if_exists="append"` — re-running inserts duplicates. Reset with `make db-reset` before reloading.
+The load uses `TRUNCATE … RESTART IDENTITY CASCADE` before each insert — re-running is safe and idempotent. Reset with `make db-reset` if you need a fully clean slate.

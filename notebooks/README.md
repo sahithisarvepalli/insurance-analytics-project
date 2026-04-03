@@ -33,12 +33,12 @@ jupyter notebook --ip=0.0.0.0 --port=8889 --no-browser --allow-root
 
 ```
 notebooks/
-├── 01_exploratory_analysis/       # Data exploration and visualization
-├── 02_feature_engineering/         # Feature creation and transformation
-├── 03_modeling/                    # Model development and testing
-├── 04_reporting/                   # Dashboard and report generation
-└── outputs/                        # Generated outputs and artifacts
+├── myfirst.ipynb              # Guided intro: connect, explore claims data, troubleshoot
+└── README.md                  # This file
 ```
+
+New notebooks can be added here as needed. Recommended naming convention:
+`01_exploratory_analysis.ipynb`, `02_kpi_dashboard.ipynb`, etc.
 
 ## Using the Python Environment
 
@@ -64,11 +64,14 @@ import os
 DATABASE_URL = os.getenv('DATABASE_URL')
 engine = create_engine(DATABASE_URL)
 
-# Query data
+# Query claims data
 query = "SELECT * FROM insurance.claim LIMIT 10"
 df = pd.read_sql(query, engine)
 df.head()
 ```
+
+> **Tip:** The database must be seeded first. Run `make kaggle-load` (requires Kaggle credentials)
+> or `make db-init` followed by `make kaggle-load` if starting fresh.
 
 ## Tips
 
@@ -123,5 +126,5 @@ pg_isready -h db -p 5432
 - `make test` - Run unit tests
 - `make lint` - Check code quality
 - `make format` - Auto-format Python code
-- `make data-gen` - Generate fresh synthetic data
+- `make kaggle-load` - Download Kaggle dataset and load into the database
 - `make clean` - Clean cache and artifacts
