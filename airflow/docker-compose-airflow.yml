@@ -21,7 +21,7 @@ x-airflow-common: &airflow-common
     PYTHONPATH: /workspaces/insurance-analytics-project
     _PIP_ADDITIONAL_REQUIREMENTS: >-
       pandas>=2.2 numpy>=1.26 sqlalchemy>=2.0 psycopg2-binary>=2.9
-      scikit-learn>=1.4 openpyxl>=3.1 pyyaml>=6.0
+      scikit-learn>=1.4 openpyxl>=3.1 pyyaml>=6.0 kaggle>=1.6.0
   volumes:
     - ../airflow/dags:/opt/airflow/dags        # your DAGs folder
     - ../airflow/logs:/opt/airflow/logs        # task logs

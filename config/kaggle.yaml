@@ -1,0 +1,88 @@
+# Kaggle dataset configuration
+# ---------------------------------------------------------------------------
+# Credentials
+# ---------------------------------------------------------------------------
+# Provide your Kaggle API token via ONE of the following methods (in priority
+# order):
+#
+#   1. Environment variables  (recommended for CI / containers)
+#        export KAGGLE_USERNAME=your_username
+#        export KAGGLE_KEY=your_api_key
+#
+#   2. Credential file  (recommended for local dev)
+#        Place the JSON token downloaded from kaggle.com → Account → API at:
+#        ~/.kaggle/kaggle.json
+#
+# See https://www.kaggle.com/docs/api for full setup instructions.
+# ---------------------------------------------------------------------------
+
+# Which dataset key under 'datasets' to activate for the current run.
+# Override at runtime: DATA_SOURCE=kaggle python -m src.load --from-kaggle
+active_dataset: insurance_charges
+
+datasets:
+
+  # -------------------------------------------------------------------------
+  # Example 1 — Medical insurance charges (single-file dataset)
+  # https://www.kaggle.com/datasets/mirichoi0218/insurance
+  # Source columns: age, sex, bmi, children, smoker, region, charges
+  # -------------------------------------------------------------------------
+  insurance_charges:
+    owner: mirichoi0218
+    dataset: insurance
+    dest_dir: data/kaggle/insurance_charges
+
+    # Which files in the downloaded dataset map to which pipeline roles.
+    # Supported roles: claims  |  members  |  providers
+    # If members / providers are omitted they are derived automatically from
+    # the unique member_id / provider_id values found in the claims file.
+    files:
+      claims: insurance.csv
+
+    # Rename source column names to pipeline schema column names.
+    # Any source column NOT listed here is passed through unchanged.
+    column_map:
+      claims:
+        charges: paid_amount   # monetary amount → paid_amount
+        sex: gender            # 'sex' column   → 'gender'
+
+    # Static values injected for required pipeline columns absent in the
+    # source file.  These are merged with schema defaults; values here win.
+    defaults:
+      claims:
+        billed_amount: 0.0
+        allowed_amount: 0.0
+        place_of_service: Office
+        procedure_code: "99213"
+        service_date: "2023-01-01"
+        diagnosis_code: Z00
+        # member_id and provider_id are auto-assigned if absent
+
+  # -------------------------------------------------------------------------
+  # Example 2 — Insurance claim prediction dataset
+  # https://www.kaggle.com/datasets/easonlai/sample-insurance-claim-prediction-dataset
+  # Source columns: age, sex, bmi, steps, children, smoker, region, charges,
+  #                 insuranceclaim
+  # -------------------------------------------------------------------------
+  insurance_claims:
+    owner: easonlai
+    dataset: sample-insurance-claim-prediction-dataset
+    dest_dir: data/kaggle/insurance_claims
+
+    files:
+      claims: insurance_claims.csv
+
+    column_map:
+      claims:
+        charges: paid_amount
+        sex: gender
+        # insuranceclaim is a binary flag (0/1) — passed through unchanged
+
+    defaults:
+      claims:
+        billed_amount: 0.0
+        allowed_amount: 0.0
+        place_of_service: Office
+        procedure_code: "99213"
+        service_date: "2023-01-01"
+        diagnosis_code: Z00

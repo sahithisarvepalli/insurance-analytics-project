@@ -1,7 +1,10 @@
 """Airflow DAG — Insurance Analytics end-to-end pipeline.
 
 Schedule : daily at 06:00 UTC (configurable via AIRFLOW_PIPELINE_SCHEDULE env var)
-Graph    : generate → load → [transform, model] → report
+
+Data source (set DATA_SOURCE env var):
+  synthetic  (default) — generate → load → [transform, model] → report
+  kaggle               — kaggle_ingest → [transform, model] → report
 
 Each task shells out to the existing CLI entry-points so no production code
 needs to change.  The DAG is idempotent — load.py truncates before inserting.
@@ -22,6 +25,13 @@ from airflow import DAG
 SCHEDULE = os.getenv("AIRFLOW_PIPELINE_SCHEDULE", "0 6 * * *")  # daily 06:00
 PROJECT_DIR = os.getenv("AIRFLOW_PROJECT_DIR", "/workspaces/insurance-analytics-project")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/insurdb")
+
+# Set DATA_SOURCE=kaggle to ingest from Kaggle instead of generating synthetic data.
+# Requires KAGGLE_USERNAME and KAGGLE_KEY (or ~/.kaggle/kaggle.json) to be available.
+DATA_SOURCE = os.getenv("DATA_SOURCE", "synthetic")  # "synthetic" | "kaggle"
+
+# Path to the Kaggle dataset config file (only used when DATA_SOURCE=kaggle).
+KAGGLE_CONFIG = os.getenv("KAGGLE_CONFIG", f"{PROJECT_DIR}/config/kaggle.yaml")
 
 DEFAULT_ARGS = {
     "owner": "analytics-team",
@@ -51,29 +61,6 @@ with DAG(
     catchup=False,
     tags=["insurance", "etl", "ml"],
 ) as dag:
-    generate = BashOperator(
-        task_id="generate_synthetic_data",
-        bash_command=(
-            f"cd {PROJECT_DIR} && "
-            "python -m src.generate_synthetic "
-            "--rows-members 2000 --rows-providers 300 --rows-claims 5000 "
-            "--out-dir data/"
-        ),
-        env=TASK_ENV,
-    )
-
-    load = BashOperator(
-        task_id="load_csv_to_postgres",
-        bash_command=(
-            f"cd {PROJECT_DIR} && "
-            "python -m src.load --from-csv "
-            "--members data/sample_members.csv "
-            "--providers data/sample_providers.csv "
-            "--claims data/sample_claims.csv"
-        ),
-        env=TASK_ENV,
-    )
-
     transform = BashOperator(
         task_id="run_transform_kpis",
         bash_command=f"cd {PROJECT_DIR} && python -m src.transform",
@@ -94,7 +81,48 @@ with DAG(
         env=TASK_ENV,
     )
 
-    # ----- dependency graph -----
-    # generate → load → transform ──┐
-    #                    model    ───┤→ report
-    generate >> load >> [transform, model] >> report  # pylint: disable=pointless-statement
+    if DATA_SOURCE == "kaggle":
+        # ----- Kaggle ingestion branch -----
+        # kaggle_ingest → [transform, model] → report
+        kaggle_ingest = BashOperator(
+            task_id="kaggle_ingest",
+            bash_command=(
+                f"cd {PROJECT_DIR} && "
+                "python -m src.load --from-kaggle "
+                f"--kaggle-config {KAGGLE_CONFIG}"
+            ),
+            env={
+                **TASK_ENV,
+                "KAGGLE_USERNAME": os.getenv("KAGGLE_USERNAME", ""),
+                "KAGGLE_KEY": os.getenv("KAGGLE_KEY", ""),
+            },
+        )
+        kaggle_ingest >> [transform, model] >> report  # pylint: disable=pointless-statement
+    else:
+        # ----- Synthetic data branch (default) -----
+        # generate → load → [transform, model] → report
+        generate = BashOperator(
+            task_id="generate_synthetic_data",
+            bash_command=(
+                f"cd {PROJECT_DIR} && "
+                "python -m src.generate_synthetic "
+                "--rows-members 2000 --rows-providers 300 --rows-claims 5000 "
+                "--out-dir data/"
+            ),
+            env=TASK_ENV,
+        )
+
+        load = BashOperator(
+            task_id="load_csv_to_postgres",
+            bash_command=(
+                f"cd {PROJECT_DIR} && "
+                "python -m src.load --from-csv "
+                "--members data/sample_members.csv "
+                "--providers data/sample_providers.csv "
+                "--claims data/sample_claims.csv"
+            ),
+            env=TASK_ENV,
+        )
+
+        generate >> load >> [transform, model] >> report  # pylint: disable=pointless-statement
+
