@@ -44,46 +44,50 @@ def _sample_claims() -> pd.DataFrame:
 # ────────────────────────────────────────────────────────────────────────────
 
 
-class TestApplyMapping:
-    @pytest.mark.unit
-    def test_renames_mapped_columns(self):
-        df = pd.DataFrame({"charges": [100, 200], "sex": ["M", "F"]})
-        result = _apply_mapping(df, {"charges": "paid_amount", "sex": "gender"}, {})
-        assert "paid_amount" in result.columns
-        assert "gender" in result.columns
-        assert "charges" not in result.columns
-        assert "sex" not in result.columns
+@pytest.mark.unit
+def test_apply_mapping_renames_mapped_columns():
+    df = pd.DataFrame({"charges": [100, 200], "sex": ["M", "F"]})
+    result = _apply_mapping(df, {"charges": "paid_amount", "sex": "gender"}, {})
+    assert "paid_amount" in result.columns
+    assert "gender" in result.columns
+    assert "charges" not in result.columns
+    assert "sex" not in result.columns
 
-    @pytest.mark.unit
-    def test_ignores_absent_map_keys(self):
-        df = pd.DataFrame({"a": [1]})
-        result = _apply_mapping(df, {"nonexistent": "target"}, {})
-        assert list(result.columns) == ["a"]
 
-    @pytest.mark.unit
-    def test_injects_defaults_for_absent_columns(self):
-        df = pd.DataFrame({"paid_amount": [100.0]})
-        result = _apply_mapping(df, {}, {"place_of_service": "Office", "diagnosis_code": "Z00"})
-        assert result["place_of_service"].iloc[0] == "Office"
-        assert result["diagnosis_code"].iloc[0] == "Z00"
+@pytest.mark.unit
+def test_apply_mapping_ignores_absent_map_keys():
+    df = pd.DataFrame({"a": [1]})
+    result = _apply_mapping(df, {"nonexistent": "target"}, {})
+    assert list(result.columns) == ["a"]
 
-    @pytest.mark.unit
-    def test_does_not_overwrite_existing_columns(self):
-        df = pd.DataFrame({"place_of_service": ["ER"]})
-        result = _apply_mapping(df, {}, {"place_of_service": "Office"})
-        assert result["place_of_service"].iloc[0] == "ER"
 
-    @pytest.mark.unit
-    def test_callable_default_is_invoked(self):
-        df = pd.DataFrame({"a": [1, 2]})
-        result = _apply_mapping(df, {}, {"b": lambda: [10, 20]})
-        assert list(result["b"]) == [10, 20]
+@pytest.mark.unit
+def test_apply_mapping_injects_defaults_for_absent_columns():
+    df = pd.DataFrame({"paid_amount": [100.0]})
+    result = _apply_mapping(df, {}, {"place_of_service": "Office", "diagnosis_code": "Z00"})
+    assert result["place_of_service"].iloc[0] == "Office"
+    assert result["diagnosis_code"].iloc[0] == "Z00"
 
-    @pytest.mark.unit
-    def test_callable_default_accepts_length(self):
-        df = pd.DataFrame({"a": [1, 2, 3]})
-        result = _apply_mapping(df, {}, {"b": lambda n: [0] * n})
-        assert list(result["b"]) == [0, 0, 0]
+
+@pytest.mark.unit
+def test_apply_mapping_does_not_overwrite_existing_columns():
+    df = pd.DataFrame({"place_of_service": ["ER"]})
+    result = _apply_mapping(df, {}, {"place_of_service": "Office"})
+    assert result["place_of_service"].iloc[0] == "ER"
+
+
+@pytest.mark.unit
+def test_apply_mapping_callable_default_is_invoked():
+    df = pd.DataFrame({"a": [1, 2]})
+    result = _apply_mapping(df, {}, {"b": lambda: [10, 20]})
+    assert list(result["b"]) == [10, 20]
+
+
+@pytest.mark.unit
+def test_apply_mapping_callable_default_accepts_length():
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    result = _apply_mapping(df, {}, {"b": lambda n: [0] * n})
+    assert list(result["b"]) == [0, 0, 0]
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -91,31 +95,33 @@ class TestApplyMapping:
 # ────────────────────────────────────────────────────────────────────────────
 
 
-class TestDeriveMembers:
-    @pytest.mark.unit
-    def test_returns_one_row_per_unique_member(self):
-        claims = _sample_claims()
-        members = _derive_members(claims)
-        assert len(members) == claims["member_id"].nunique()
+@pytest.mark.unit
+def test_derive_members_returns_one_row_per_unique_member():
+    claims = _sample_claims()
+    members = _derive_members(claims)
+    assert len(members) == claims["member_id"].nunique()
 
-    @pytest.mark.unit
-    def test_required_columns_present(self):
-        members = _derive_members(_sample_claims())
-        for col in ("member_id", "dob", "gender", "region", "effective_date"):
-            assert col in members.columns, f"Missing column: {col}"
 
-    @pytest.mark.unit
-    def test_member_ids_match_claims(self):
-        claims = _sample_claims()
-        members = _derive_members(claims)
-        assert set(members["member_id"]) == set(claims["member_id"].unique())
+@pytest.mark.unit
+def test_derive_members_required_columns_present():
+    members = _derive_members(_sample_claims())
+    for col in ("member_id", "dob", "gender", "region", "effective_date"):
+        assert col in members.columns, f"Missing column: {col}"
 
-    @pytest.mark.unit
-    def test_reproducible_with_same_seed(self):
-        claims = _sample_claims()
-        m1 = _derive_members(claims)
-        m2 = _derive_members(claims)
-        pd.testing.assert_frame_equal(m1, m2)
+
+@pytest.mark.unit
+def test_derive_members_ids_match_claims():
+    claims = _sample_claims()
+    members = _derive_members(claims)
+    assert set(members["member_id"]) == set(claims["member_id"].unique())
+
+
+@pytest.mark.unit
+def test_derive_members_reproducible_with_same_seed():
+    claims = _sample_claims()
+    m1 = _derive_members(claims)
+    m2 = _derive_members(claims)
+    pd.testing.assert_frame_equal(m1, m2)
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -123,24 +129,25 @@ class TestDeriveMembers:
 # ────────────────────────────────────────────────────────────────────────────
 
 
-class TestDeriveProviders:
-    @pytest.mark.unit
-    def test_returns_one_row_per_unique_provider(self):
-        claims = _sample_claims()
-        providers = _derive_providers(claims)
-        assert len(providers) == claims["provider_id"].nunique()
+@pytest.mark.unit
+def test_derive_providers_returns_one_row_per_unique_provider():
+    claims = _sample_claims()
+    providers = _derive_providers(claims)
+    assert len(providers) == claims["provider_id"].nunique()
 
-    @pytest.mark.unit
-    def test_required_columns_present(self):
-        providers = _derive_providers(_sample_claims())
-        for col in ("provider_id", "specialty", "in_network", "region"):
-            assert col in providers.columns, f"Missing column: {col}"
 
-    @pytest.mark.unit
-    def test_provider_ids_match_claims(self):
-        claims = _sample_claims()
-        providers = _derive_providers(claims)
-        assert set(providers["provider_id"]) == set(claims["provider_id"].unique())
+@pytest.mark.unit
+def test_derive_providers_required_columns_present():
+    providers = _derive_providers(_sample_claims())
+    for col in ("provider_id", "specialty", "in_network", "region"):
+        assert col in providers.columns, f"Missing column: {col}"
+
+
+@pytest.mark.unit
+def test_derive_providers_ids_match_claims():
+    claims = _sample_claims()
+    providers = _derive_providers(claims)
+    assert set(providers["provider_id"]) == set(claims["provider_id"].unique())
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -148,30 +155,31 @@ class TestDeriveProviders:
 # ────────────────────────────────────────────────────────────────────────────
 
 
-class TestEnsureKaggleCredentials:
-    @pytest.mark.unit
-    def test_passes_with_env_vars(self, monkeypatch):
-        monkeypatch.setenv("KAGGLE_USERNAME", "user")
-        monkeypatch.setenv("KAGGLE_KEY", "key123")
+@pytest.mark.unit
+def test_ensure_kaggle_credentials_passes_with_env_vars(monkeypatch):
+    monkeypatch.setenv("KAGGLE_USERNAME", "user")
+    monkeypatch.setenv("KAGGLE_KEY", "key123")
+    _ensure_kaggle_credentials()  # should not raise
+
+
+@pytest.mark.unit
+def test_ensure_kaggle_credentials_raises_when_no_credentials(monkeypatch, tmp_path):
+    monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
+    monkeypatch.delenv("KAGGLE_KEY", raising=False)
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        with pytest.raises(EnvironmentError, match="Kaggle credentials not found"):
+            _ensure_kaggle_credentials()
+
+
+@pytest.mark.unit
+def test_ensure_kaggle_credentials_passes_with_kaggle_json(monkeypatch, tmp_path):
+    monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
+    monkeypatch.delenv("KAGGLE_KEY", raising=False)
+    kaggle_dir = tmp_path / ".kaggle"
+    kaggle_dir.mkdir()
+    (kaggle_dir / "kaggle.json").write_text('{"username":"u","key":"k"}')
+    with patch("pathlib.Path.home", return_value=tmp_path):
         _ensure_kaggle_credentials()  # should not raise
-
-    @pytest.mark.unit
-    def test_raises_when_no_credentials(self, monkeypatch, tmp_path):
-        monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
-        monkeypatch.delenv("KAGGLE_KEY", raising=False)
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            with pytest.raises(EnvironmentError, match="Kaggle credentials not found"):
-                _ensure_kaggle_credentials()
-
-    @pytest.mark.unit
-    def test_passes_with_kaggle_json(self, monkeypatch, tmp_path):
-        monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
-        monkeypatch.delenv("KAGGLE_KEY", raising=False)
-        kaggle_dir = tmp_path / ".kaggle"
-        kaggle_dir.mkdir()
-        (kaggle_dir / "kaggle.json").write_text('{"username":"u","key":"k"}')
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            _ensure_kaggle_credentials()  # should not raise
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -179,35 +187,35 @@ class TestEnsureKaggleCredentials:
 # ────────────────────────────────────────────────────────────────────────────
 
 
-class TestDownloadDataset:
-    @pytest.mark.unit
-    def test_calls_kaggle_api(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("KAGGLE_USERNAME", "user")
-        monkeypatch.setenv("KAGGLE_KEY", "key")
+@pytest.mark.unit
+def test_download_dataset_calls_kaggle_api(monkeypatch, tmp_path):
+    monkeypatch.setenv("KAGGLE_USERNAME", "user")
+    monkeypatch.setenv("KAGGLE_KEY", "key")
 
-        mock_api = MagicMock()
-        mock_kaggle = MagicMock()
-        mock_kaggle.api = mock_api
+    mock_api = MagicMock()
+    mock_kaggle = MagicMock()
+    mock_kaggle.api = mock_api
 
-        with patch.dict("sys.modules", {"kaggle": mock_kaggle}):
-            result = download_dataset("owner", "dataset", str(tmp_path))
+    with patch.dict("sys.modules", {"kaggle": mock_kaggle}):
+        result = download_dataset("owner", "dataset", str(tmp_path))
 
-        mock_api.authenticate.assert_called_once()
-        mock_api.dataset_download_files.assert_called_once_with(
-            "owner/dataset",
-            path=str(tmp_path),
-            unzip=True,
-            quiet=False,
-        )
-        assert result == str(tmp_path)
+    mock_api.authenticate.assert_called_once()
+    mock_api.dataset_download_files.assert_called_once_with(
+        "owner/dataset",
+        path=str(tmp_path),
+        unzip=True,
+        quiet=False,
+    )
+    assert result == str(tmp_path)
 
-    @pytest.mark.unit
-    def test_raises_without_credentials(self, monkeypatch, tmp_path):
-        monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
-        monkeypatch.delenv("KAGGLE_KEY", raising=False)
-        with patch("pathlib.Path.home", return_value=tmp_path):
-            with pytest.raises(EnvironmentError):
-                download_dataset("owner", "dataset", str(tmp_path))
+
+@pytest.mark.unit
+def test_download_dataset_raises_without_credentials(monkeypatch, tmp_path):
+    monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
+    monkeypatch.delenv("KAGGLE_KEY", raising=False)
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        with pytest.raises(EnvironmentError):
+            download_dataset("owner", "dataset", str(tmp_path))
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -234,7 +242,7 @@ def _write_config(
         },
     }
     path = tmp_path / "kaggle.yaml"
-    path.write_text(yaml.dump(config))
+    path.write_text(yaml.safe_dump(config))
     return str(path)
 
 
@@ -254,229 +262,244 @@ def _write_claims_csv(dest_dir):
     return path
 
 
-class TestLoadKaggleData:
-    @pytest.mark.unit
-    def test_raises_when_no_active_dataset(self, tmp_path):
-        cfg_path = tmp_path / "kaggle.yaml"
-        cfg_path.write_text(yaml.dump({"datasets": {}}))
-        with pytest.raises(ValueError, match="active_dataset"):
-            load_kaggle_data(str(cfg_path))
+@pytest.mark.unit
+def test_load_kaggle_data_raises_when_no_active_dataset(tmp_path):
+    cfg_path = tmp_path / "kaggle.yaml"
+    cfg_path.write_text(yaml.safe_dump({"datasets": {}}))
+    with pytest.raises(ValueError, match="active_dataset"):
+        load_kaggle_data(str(cfg_path))
 
-    @pytest.mark.unit
-    def test_raises_when_active_dataset_not_in_config(self, tmp_path):
-        cfg_path = tmp_path / "kaggle.yaml"
-        cfg_path.write_text(yaml.dump({"active_dataset": "missing", "datasets": {}}))
-        with pytest.raises(KeyError, match="missing"):
-            load_kaggle_data(str(cfg_path))
 
-    @pytest.mark.unit
-    def test_raises_when_claims_file_not_found(self, tmp_path, monkeypatch):
-        dest_dir = tmp_path / "kaggle"
-        dest_dir.mkdir()
-        # download_dataset is a no-op so the configured claims.csv is never created
-        monkeypatch.setattr("src.kaggle_ingest.download_dataset", lambda *a, **kw: None)
-        cfg_path = _write_config(tmp_path, extra_files={"claims": "claims.csv"})
-        with pytest.raises(FileNotFoundError, match="claims.csv"):
-            load_kaggle_data(cfg_path)
+@pytest.mark.unit
+def test_load_kaggle_data_raises_when_active_dataset_not_in_config(tmp_path):
+    cfg_path = tmp_path / "kaggle.yaml"
+    cfg_path.write_text(yaml.safe_dump({"active_dataset": "missing", "datasets": {}}))
+    with pytest.raises(KeyError, match="missing"):
+        load_kaggle_data(str(cfg_path))
 
-    @pytest.mark.unit
-    def test_raises_when_no_claims_configured(self, tmp_path):
-        dest_dir = tmp_path / "kaggle"
-        dest_dir.mkdir()
-        (dest_dir / "members.csv").write_text("member_id\n1\n")
-        cfg_path = _write_config(tmp_path, extra_files={"members": "members.csv"})
-        with pytest.raises(ValueError, match="claims"):
-            load_kaggle_data(cfg_path)
 
-    @pytest.mark.unit
-    def test_returns_all_three_roles(self, tmp_path):
-        dest_dir = tmp_path / "kaggle"
-        _write_claims_csv(dest_dir)
-        cfg_path = _write_config(
-            tmp_path,
-            col_map={"claims": {"charges": "paid_amount", "sex": "gender"}},
-            defaults={
-                "claims": {
-                    "billed_amount": 0.0,
-                    "allowed_amount": 0.0,
-                    "place_of_service": "Office",
-                    "procedure_code": "99213",
-                    "service_date": "2023-01-01",
-                    "diagnosis_code": "Z00",
-                }
-            },
-        )
-        result = load_kaggle_data(cfg_path)
-        assert set(result.keys()) == {"members", "providers", "claims"}
-
-    @pytest.mark.unit
-    def test_column_mapping_applied(self, tmp_path):
-        dest_dir = tmp_path / "kaggle"
-        _write_claims_csv(dest_dir)
-        cfg_path = _write_config(
-            tmp_path,
-            col_map={"claims": {"charges": "paid_amount", "sex": "gender"}},
-        )
-        result = load_kaggle_data(cfg_path)
-        assert "paid_amount" in result["claims"].columns
-        assert "gender" in result["claims"].columns
-        assert "charges" not in result["claims"].columns
-
-    @pytest.mark.unit
-    def test_defaults_injected(self, tmp_path):
-        dest_dir = tmp_path / "kaggle"
-        _write_claims_csv(dest_dir)
-        cfg_path = _write_config(
-            tmp_path,
-            defaults={"claims": {"place_of_service": "Inpatient"}},
-        )
-        result = load_kaggle_data(cfg_path)
-        assert (result["claims"]["place_of_service"] == "Inpatient").all()
-
-    @pytest.mark.unit
-    def test_members_derived_when_absent(self, tmp_path):
-        dest_dir = tmp_path / "kaggle"
-        _write_claims_csv(dest_dir)
-        # Claims CSV has no member_id; provide it via defaults
-        cfg_path = _write_config(
-            tmp_path,
-            col_map={"claims": {"charges": "paid_amount"}},
-            defaults={"claims": {"member_id": 1, "provider_id": 1}},
-        )
-        result = load_kaggle_data(cfg_path)
-        assert "members" in result
-        assert not result["members"].empty
-
-    @pytest.mark.unit
-    def test_providers_derived_when_absent(self, tmp_path):
-        dest_dir = tmp_path / "kaggle"
-        _write_claims_csv(dest_dir)
-        cfg_path = _write_config(
-            tmp_path,
-            defaults={"claims": {"member_id": 1, "provider_id": 1}},
-        )
-        result = load_kaggle_data(cfg_path)
-        assert "providers" in result
-        assert not result["providers"].empty
-
-    @pytest.mark.unit
-    def test_uses_cached_data_without_downloading(self, tmp_path, monkeypatch):
-        """load_kaggle_data must not call download when CSV files are already present."""
-        dest_dir = tmp_path / "kaggle"
-        _write_claims_csv(dest_dir)
-        cfg_path = _write_config(tmp_path)
-
-        download_called = []
-
-        def fake_download(owner, dataset, dest_dir):
-            download_called.append(True)
-            return dest_dir
-
-        monkeypatch.setattr("src.kaggle_ingest.download_dataset", fake_download)
+@pytest.mark.unit
+def test_load_kaggle_data_raises_when_claims_file_not_found(tmp_path, monkeypatch):
+    dest_dir = tmp_path / "kaggle"
+    dest_dir.mkdir()
+    # download_dataset is a no-op so the configured claims.csv is never created
+    monkeypatch.setattr("src.kaggle_ingest.download_dataset", lambda *a, **kw: None)
+    cfg_path = _write_config(tmp_path, extra_files={"claims": "claims.csv"})
+    with pytest.raises(FileNotFoundError, match="claims.csv"):
         load_kaggle_data(cfg_path)
-        assert not download_called, "download_dataset should not be called when cache exists"
 
-    @pytest.mark.unit
-    def test_triggers_download_when_configured_file_absent(self, tmp_path, monkeypatch):
-        """A stale cache dir with a different CSV must still trigger a download."""
-        dest_dir = tmp_path / "kaggle"
-        dest_dir.mkdir(parents=True)
-        # Put an unrelated CSV in the cache dir — the configured claims.csv is missing
-        (dest_dir / "unrelated.csv").write_text("x\n1\n")
-        cfg_path = _write_config(tmp_path)
 
-        download_called = []
-
-        def fake_download(owner, dataset, dest):
-            download_called.append(True)
-            # Write the expected file so the subsequent read succeeds
-            _write_claims_csv(dest_dir)
-            return dest
-
-        monkeypatch.setattr("src.kaggle_ingest.download_dataset", fake_download)
+@pytest.mark.unit
+def test_load_kaggle_data_raises_when_no_claims_configured(tmp_path):
+    dest_dir = tmp_path / "kaggle"
+    dest_dir.mkdir()
+    (dest_dir / "members.csv").write_text("member_id\n1\n")
+    cfg_path = _write_config(tmp_path, extra_files={"members": "members.csv"})
+    with pytest.raises(ValueError, match="claims"):
         load_kaggle_data(cfg_path)
-        assert download_called, "download_dataset should be called when configured file is absent"
 
-    @pytest.mark.unit
-    def test_fk_validation_raises_when_members_missing_member_id_column(self, tmp_path):
-        """Explicit members file without member_id column must raise ValueError."""
-        dest_dir = tmp_path / "kaggle"
-        dest_dir.mkdir(parents=True)
-        _write_claims_csv(dest_dir)
-        # members file that lacks member_id
-        members_path = dest_dir / "members.csv"
-        pd.DataFrame({"name": ["Alice"]}).to_csv(members_path, index=False)
 
-        cfg_path = _write_config(
-            tmp_path,
-            extra_files={"claims": "claims.csv", "members": "members.csv"},
-            defaults={"claims": {"member_id": 1, "provider_id": 1}},
-        )
-        with pytest.raises(ValueError, match="member_id"):
-            load_kaggle_data(cfg_path)
-
-    @pytest.mark.unit
-    def test_fk_validation_raises_when_members_have_missing_ids(self, tmp_path):
-        """Claims referencing member_ids absent from the members table must raise ValueError."""
-        dest_dir = tmp_path / "kaggle"
-        dest_dir.mkdir(parents=True)
-        # Claims reference member_ids 1 and 2
-        claims_path = dest_dir / "claims.csv"
-        pd.DataFrame(
-            {
-                "member_id": [1, 2],
-                "provider_id": [10, 10],
-                "paid_amount": [100.0, 200.0],
+@pytest.mark.unit
+def test_load_kaggle_data_returns_all_three_roles(tmp_path):
+    dest_dir = tmp_path / "kaggle"
+    _write_claims_csv(dest_dir)
+    cfg_path = _write_config(
+        tmp_path,
+        col_map={"claims": {"charges": "paid_amount", "sex": "gender"}},
+        defaults={
+            "claims": {
+                "billed_amount": 0.0,
+                "allowed_amount": 0.0,
+                "place_of_service": "Office",
+                "procedure_code": "99213",
+                "service_date": "2023-01-01",
+                "diagnosis_code": "Z00",
             }
-        ).to_csv(claims_path, index=False)
-        # Members table only covers member_id=1
-        members_path = dest_dir / "members.csv"
-        pd.DataFrame({"member_id": [1]}).to_csv(members_path, index=False)
+        },
+    )
+    result = load_kaggle_data(cfg_path)
+    assert set(result.keys()) == {"members", "providers", "claims"}
 
-        cfg_path = _write_config(
-            tmp_path,
-            extra_files={"claims": "claims.csv", "members": "members.csv"},
-        )
-        with pytest.raises(ValueError, match="missing member_id"):
-            load_kaggle_data(cfg_path)
 
-    @pytest.mark.unit
-    def test_fk_validation_raises_when_providers_missing_provider_id_column(self, tmp_path):
-        """Explicit providers file without provider_id column must raise ValueError."""
-        dest_dir = tmp_path / "kaggle"
-        dest_dir.mkdir(parents=True)
+@pytest.mark.unit
+def test_load_kaggle_data_column_mapping_applied(tmp_path):
+    dest_dir = tmp_path / "kaggle"
+    _write_claims_csv(dest_dir)
+    cfg_path = _write_config(
+        tmp_path,
+        col_map={"claims": {"charges": "paid_amount", "sex": "gender"}},
+    )
+    result = load_kaggle_data(cfg_path)
+    assert "paid_amount" in result["claims"].columns
+    assert "gender" in result["claims"].columns
+    assert "charges" not in result["claims"].columns
+
+
+@pytest.mark.unit
+def test_load_kaggle_data_defaults_injected(tmp_path):
+    dest_dir = tmp_path / "kaggle"
+    _write_claims_csv(dest_dir)
+    cfg_path = _write_config(
+        tmp_path,
+        defaults={"claims": {"place_of_service": "Inpatient"}},
+    )
+    result = load_kaggle_data(cfg_path)
+    assert (result["claims"]["place_of_service"] == "Inpatient").all()
+
+
+@pytest.mark.unit
+def test_load_kaggle_data_members_derived_when_absent(tmp_path):
+    dest_dir = tmp_path / "kaggle"
+    _write_claims_csv(dest_dir)
+    # Claims CSV has no member_id; provide it via defaults
+    cfg_path = _write_config(
+        tmp_path,
+        col_map={"claims": {"charges": "paid_amount"}},
+        defaults={"claims": {"member_id": 1, "provider_id": 1}},
+    )
+    result = load_kaggle_data(cfg_path)
+    assert "members" in result
+    assert not result["members"].empty
+
+
+@pytest.mark.unit
+def test_load_kaggle_data_providers_derived_when_absent(tmp_path):
+    dest_dir = tmp_path / "kaggle"
+    _write_claims_csv(dest_dir)
+    cfg_path = _write_config(
+        tmp_path,
+        defaults={"claims": {"member_id": 1, "provider_id": 1}},
+    )
+    result = load_kaggle_data(cfg_path)
+    assert "providers" in result
+    assert not result["providers"].empty
+
+
+@pytest.mark.unit
+def test_load_kaggle_data_uses_cached_data_without_downloading(tmp_path, monkeypatch):
+    """load_kaggle_data must not call download when CSV files are already present."""
+    dest_dir = tmp_path / "kaggle"
+    _write_claims_csv(dest_dir)
+    cfg_path = _write_config(tmp_path)
+
+    download_called = []
+
+    def fake_download(owner, dataset, dest_dir):
+        download_called.append(True)
+        return dest_dir
+
+    monkeypatch.setattr("src.kaggle_ingest.download_dataset", fake_download)
+    load_kaggle_data(cfg_path)
+    assert not download_called, "download_dataset should not be called when cache exists"
+
+
+@pytest.mark.unit
+def test_load_kaggle_data_triggers_download_when_configured_file_absent(tmp_path, monkeypatch):
+    """A stale cache dir with a different CSV must still trigger a download."""
+    dest_dir = tmp_path / "kaggle"
+    dest_dir.mkdir(parents=True)
+    # Put an unrelated CSV in the cache dir — the configured claims.csv is missing
+    (dest_dir / "unrelated.csv").write_text("x\n1\n")
+    cfg_path = _write_config(tmp_path)
+
+    download_called = []
+
+    def fake_download(owner, dataset, dest):
+        download_called.append(True)
+        # Write the expected file so the subsequent read succeeds
         _write_claims_csv(dest_dir)
-        providers_path = dest_dir / "providers.csv"
-        pd.DataFrame({"specialty": ["PCP"]}).to_csv(providers_path, index=False)
+        return dest
 
-        cfg_path = _write_config(
-            tmp_path,
-            extra_files={"claims": "claims.csv", "providers": "providers.csv"},
-            defaults={"claims": {"member_id": 1, "provider_id": 1}},
-        )
-        with pytest.raises(ValueError, match="provider_id"):
-            load_kaggle_data(cfg_path)
+    monkeypatch.setattr("src.kaggle_ingest.download_dataset", fake_download)
+    load_kaggle_data(cfg_path)
+    assert download_called, "download_dataset should be called when configured file is absent"
 
-    @pytest.mark.unit
-    def test_fk_validation_raises_when_providers_have_missing_ids(self, tmp_path):
-        """Claims referencing provider_ids absent from providers table must raise ValueError."""
-        dest_dir = tmp_path / "kaggle"
-        dest_dir.mkdir(parents=True)
-        claims_path = dest_dir / "claims.csv"
-        pd.DataFrame(
-            {
-                "member_id": [1, 1],
-                "provider_id": [10, 20],
-                "paid_amount": [100.0, 200.0],
-            }
-        ).to_csv(claims_path, index=False)
-        # Providers table only covers provider_id=10
-        providers_path = dest_dir / "providers.csv"
-        pd.DataFrame({"provider_id": [10]}).to_csv(providers_path, index=False)
 
-        cfg_path = _write_config(
-            tmp_path,
-            extra_files={"claims": "claims.csv", "providers": "providers.csv"},
-        )
-        with pytest.raises(ValueError, match="missing provider_id"):
-            load_kaggle_data(cfg_path)
+@pytest.mark.unit
+def test_load_kaggle_data_fk_validation_raises_when_members_missing_member_id_column(tmp_path):
+    """Explicit members file without member_id column must raise ValueError."""
+    dest_dir = tmp_path / "kaggle"
+    dest_dir.mkdir(parents=True)
+    _write_claims_csv(dest_dir)
+    # members file that lacks member_id
+    members_path = dest_dir / "members.csv"
+    pd.DataFrame({"name": ["Alice"]}).to_csv(members_path, index=False)
+
+    cfg_path = _write_config(
+        tmp_path,
+        extra_files={"claims": "claims.csv", "members": "members.csv"},
+        defaults={"claims": {"member_id": 1, "provider_id": 1}},
+    )
+    with pytest.raises(ValueError, match="member_id"):
+        load_kaggle_data(cfg_path)
+
+
+@pytest.mark.unit
+def test_load_kaggle_data_fk_validation_raises_when_members_have_missing_ids(tmp_path):
+    """Claims referencing member_ids absent from the members table must raise ValueError."""
+    dest_dir = tmp_path / "kaggle"
+    dest_dir.mkdir(parents=True)
+    # Claims reference member_ids 1 and 2
+    claims_path = dest_dir / "claims.csv"
+    pd.DataFrame(
+        {
+            "member_id": [1, 2],
+            "provider_id": [10, 10],
+            "paid_amount": [100.0, 200.0],
+        }
+    ).to_csv(claims_path, index=False)
+    # Members table only covers member_id=1
+    members_path = dest_dir / "members.csv"
+    pd.DataFrame({"member_id": [1]}).to_csv(members_path, index=False)
+
+    cfg_path = _write_config(
+        tmp_path,
+        extra_files={"claims": "claims.csv", "members": "members.csv"},
+    )
+    with pytest.raises(ValueError, match="missing member_id"):
+        load_kaggle_data(cfg_path)
+
+
+@pytest.mark.unit
+def test_load_kaggle_data_fk_validation_raises_when_providers_missing_provider_id_column(
+    tmp_path,
+):
+    """Explicit providers file without provider_id column must raise ValueError."""
+    dest_dir = tmp_path / "kaggle"
+    dest_dir.mkdir(parents=True)
+    _write_claims_csv(dest_dir)
+    providers_path = dest_dir / "providers.csv"
+    pd.DataFrame({"specialty": ["PCP"]}).to_csv(providers_path, index=False)
+
+    cfg_path = _write_config(
+        tmp_path,
+        extra_files={"claims": "claims.csv", "providers": "providers.csv"},
+        defaults={"claims": {"member_id": 1, "provider_id": 1}},
+    )
+    with pytest.raises(ValueError, match="provider_id"):
+        load_kaggle_data(cfg_path)
+
+
+@pytest.mark.unit
+def test_load_kaggle_data_fk_validation_raises_when_providers_have_missing_ids(tmp_path):
+    """Claims referencing provider_ids absent from providers table must raise ValueError."""
+    dest_dir = tmp_path / "kaggle"
+    dest_dir.mkdir(parents=True)
+    claims_path = dest_dir / "claims.csv"
+    pd.DataFrame(
+        {
+            "member_id": [1, 1],
+            "provider_id": [10, 20],
+            "paid_amount": [100.0, 200.0],
+        }
+    ).to_csv(claims_path, index=False)
+    # Providers table only covers provider_id=10
+    providers_path = dest_dir / "providers.csv"
+    pd.DataFrame({"provider_id": [10]}).to_csv(providers_path, index=False)
+
+    cfg_path = _write_config(
+        tmp_path,
+        extra_files={"claims": "claims.csv", "providers": "providers.csv"},
+    )
+    with pytest.raises(ValueError, match="missing provider_id"):
+        load_kaggle_data(cfg_path)
