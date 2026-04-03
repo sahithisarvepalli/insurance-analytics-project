@@ -64,9 +64,7 @@ def load_from_kaggle(config_path: str = "config/kaggle.yaml") -> None:
         providers_df = providers_df[
             [c for c in _table_columns(con, "provider") if c in providers_df.columns]
         ]
-        claims_df = claims_df[
-            [c for c in _table_columns(con, "claim") if c in claims_df.columns]
-        ]
+        claims_df = claims_df[[c for c in _table_columns(con, "claim") if c in claims_df.columns]]
 
         members_df.to_sql("member", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
         providers_df.to_sql("provider", con, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
