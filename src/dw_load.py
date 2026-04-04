@@ -11,7 +11,7 @@ so they always reflect the latest aggregation logic without a rigid schema const
 
 import json
 import os
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from importlib import resources
 
 import duckdb
@@ -149,9 +149,10 @@ def run_quality_checks(dw: duckdb.DuckDBPyConnection) -> dict:
     """Run basic DW quality checks and return a result dictionary.
 
     Checks performed:
-    - non-empty dimensional tables
+    - non-empty dimensional tables (dim_member, dim_provider, dim_date)
     - uniqueness of `fact_claims.claim_id`
-    - referential integrity between `fact_claims` and dimensions
+    - referential integrity between `fact_claims` and all three dimensions
+      (member_id → dim_member, provider_id → dim_provider, date_key → dim_date)
     - no NULLs in primary key columns
     Raises RuntimeError on failure.
     """
@@ -163,6 +164,7 @@ def run_quality_checks(dw: duckdb.DuckDBPyConnection) -> dict:
     # Basic counts
     results["dim_member_count"] = _count("SELECT COUNT(*) FROM dim_member")
     results["dim_provider_count"] = _count("SELECT COUNT(*) FROM dim_provider")
+    results["dim_date_count"] = _count("SELECT COUNT(*) FROM dim_date")
     results["fact_claims_count"] = _count("SELECT COUNT(*) FROM fact_claims")
 
     # PK uniqueness
@@ -176,19 +178,29 @@ def run_quality_checks(dw: duckdb.DuckDBPyConnection) -> dict:
     missing_providers = _count(
         "SELECT COUNT(*) FROM fact_claims f LEFT JOIN dim_provider p ON f.provider_id = p.provider_id WHERE p.provider_id IS NULL"
     )
+    missing_dates = _count(
+        "SELECT COUNT(*) FROM fact_claims f LEFT JOIN dim_date d ON f.date_key = d.date_key WHERE d.date_key IS NULL"
+    )
     results["missing_member_refs"] = missing_members
     results["missing_provider_refs"] = missing_providers
+    results["missing_date_refs"] = missing_dates
 
     # Null PKs
     null_member_pk = _count("SELECT COUNT(*) FROM dim_member WHERE member_id IS NULL")
     null_provider_pk = _count("SELECT COUNT(*) FROM dim_provider WHERE provider_id IS NULL")
+    null_date_pk = _count("SELECT COUNT(*) FROM dim_date WHERE date_key IS NULL")
     results["null_member_pk"] = null_member_pk
     results["null_provider_pk"] = null_provider_pk
+    results["null_date_pk"] = null_date_pk
 
     # Evaluate
     failures = []
     if results["dim_member_count"] == 0:
         failures.append("dim_member is empty")
+    if results["dim_provider_count"] == 0:
+        failures.append("dim_provider is empty")
+    if results["dim_date_count"] == 0:
+        failures.append("dim_date is empty")
     if results["fact_claims_count"] == 0:
         failures.append("fact_claims is empty")
     if results["fact_claims_dup_claim_id"] > 0:
@@ -197,7 +209,9 @@ def run_quality_checks(dw: duckdb.DuckDBPyConnection) -> dict:
         failures.append("fact_claims contains member_id values not present in dim_member")
     if results["missing_provider_refs"] > 0:
         failures.append("fact_claims contains provider_id values not present in dim_provider")
-    if results["null_member_pk"] > 0 or results["null_provider_pk"] > 0:
+    if results["missing_date_refs"] > 0:
+        failures.append("fact_claims contains date_key values not present in dim_date")
+    if results["null_member_pk"] > 0 or results["null_provider_pk"] > 0 or results["null_date_pk"] > 0:
         failures.append("NULL primary keys found in dimensions")
 
     if failures:
@@ -215,7 +229,7 @@ def load_summaries(dw: duckdb.DuckDBPyConnection) -> None:
     _load_summary_csv(dw, "summary_network", "outputs/network_summary.csv")
 
 
-def run_dw_load(path: str = _DEFAULT_DW_PATH) -> None:
+def run_dw_load(path: str = _DEFAULT_DW_PATH, report_dir: str = "build/reports") -> None:
     """Orchestrate the full DW load: dimensions → fact table → summary tables."""
     engine = get_engine()
     dw = get_dw_conn(path)
@@ -231,7 +245,7 @@ def run_dw_load(path: str = _DEFAULT_DW_PATH) -> None:
         except Exception:
             logger.exception("DW quality checks failed")
             raise
-        _write_qa_report(results)
+        _write_qa_report(results, report_dir=report_dir)
         logger.info("DW load complete → %s", path)
         logger.info("DW quality checks: %s", results)
     finally:
@@ -239,10 +253,10 @@ def run_dw_load(path: str = _DEFAULT_DW_PATH) -> None:
 
 
 def _write_qa_report(results: dict, report_dir: str = "build/reports") -> None:
-    """Persist quality-check results as a timestamped JSON file in *report_dir*."""
+    """Persist quality-check results as a JSON file (dw_quality.json) in *report_dir*."""
     os.makedirs(report_dir, exist_ok=True)
     payload = {
-        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "checks": results,
     }
     dest = os.path.join(report_dir, "dw_quality.json")
