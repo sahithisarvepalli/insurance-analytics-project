@@ -75,22 +75,45 @@ def _insert_dataframes(
     # canonical DDL. If a client provides string IDs (eg. 'P01') we create a
     # numeric mapping and rewrite both the dimension and claim foreign keys.
     def _map_to_surrogate(dim_df: pd.DataFrame, key: str, fk_df: pd.DataFrame):
-        if key not in dim_df.columns:
+        if key not in dim_df.columns or key not in fk_df.columns:
             return dim_df, fk_df
         # If values are already integer-like, leave alone
         if pd.api.types.is_integer_dtype(dim_df[key]) and pd.api.types.is_integer_dtype(fk_df[key]):
             return dim_df, fk_df
 
-        # Create consistent mapping based on the dimension's unique values
-        orig_vals = dim_df[key].astype(str).fillna("__NULL__")
-        uniques = pd.Series(orig_vals.unique())
+        # If all non-null dimension values are purely numeric strings (e.g. "1001"),
+        # preserve their original numeric values instead of assigning new surrogates.
+        numeric_dim = pd.to_numeric(dim_df[key], errors="coerce")
+        if numeric_dim.isna().sum() == dim_df[key].isna().sum():
+            dim_df = dim_df.copy()
+            dim_df[key] = numeric_dim.astype("Int64")
+            fk_df = fk_df.copy()
+            fk_df[key] = pd.to_numeric(fk_df[key], errors="coerce").astype("Int64")
+            return dim_df, fk_df
+
+        # Create consistent mapping based on the dimension's non-null unique values.
+        # Use pandas' nullable string dtype so missing values remain missing instead
+        # of becoming the literal strings "nan"/"<NA>".
+        orig_vals = dim_df[key].astype("string")
+        uniques = pd.Series(orig_vals.dropna().unique())
         mapping = {orig: i + 1 for i, orig in enumerate(uniques)}
 
+        fk_ids = fk_df[key].astype("string")
+        missing_mask = fk_ids.notna() & ~fk_ids.isin(mapping)
+        if missing_mask.any():
+            missing_ids = fk_ids[missing_mask].drop_duplicates().tolist()
+            sample = ", ".join(repr(v) for v in missing_ids[:5])
+            extra = "" if len(missing_ids) <= 5 else f" (and {len(missing_ids) - 5} more)"
+            raise ValueError(
+                f"Found unmapped non-null values for foreign key '{key}' while rewriting "
+                f"surrogate keys: {sample}{extra}"
+            )
+
         dim_df = dim_df.copy()
-        dim_df[key] = orig_vals.map(lambda v: mapping.get(v, None))
+        dim_df[key] = orig_vals.map(mapping).astype("Int64")
 
         fk_df = fk_df.copy()
-        fk_df[key] = fk_df[key].astype(str).fillna("__NULL__").map(lambda v: mapping.get(v, None))
+        fk_df[key] = fk_ids.map(mapping).astype("Int64")
         return dim_df, fk_df
 
     providers_df, claims_df = _map_to_surrogate(providers_df, "provider_id", claims_df)
