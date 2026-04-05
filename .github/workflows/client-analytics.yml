@@ -279,6 +279,7 @@ jobs:
               links_html += f"<li><a href='{client}/dashboard.html'>📊 {client.replace('_',' ').title()} Dashboard</a></li>"
           if not links_html:
               links_html = '<li><em>No dashboards available yet.</em></li>'
+          pages_dir.mkdir(parents=True, exist_ok=True)
           html = f'<!doctype html><html><body><h1>Client Dashboards</h1><ul>{links_html}</ul></body></html>'
           (pages_dir / 'index.html').write_text(html, encoding='utf-8')
           PYEOF
