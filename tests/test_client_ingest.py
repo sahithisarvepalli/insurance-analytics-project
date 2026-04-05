@@ -85,6 +85,24 @@ def test_parse_client_config_raises_on_missing_files(tmp_path):
         _parse_client_config(path)
 
 
+@pytest.mark.unit
+def test_parse_client_config_raises_on_missing_client_id(tmp_path):
+    """A config without 'client_id' must raise ValueError."""
+    cfg = {"client_name": "Acme Health", "files": {"claims": "some/path.csv"}}
+    path = _write_config(tmp_path, cfg)
+    with pytest.raises(ValueError, match="client_id"):
+        _parse_client_config(path)
+
+
+@pytest.mark.unit
+def test_parse_client_config_raises_on_empty_yaml(tmp_path):
+    """An empty (or non-mapping) YAML file must raise ValueError."""
+    p = tmp_path / "empty.yaml"
+    p.write_text("", encoding="utf-8")
+    with pytest.raises(ValueError, match="valid YAML mapping"):
+        _parse_client_config(str(p))
+
+
 # ────────────────────────────────────────────────────────────────────────────
 # _load_client_role_files
 # ────────────────────────────────────────────────────────────────────────────

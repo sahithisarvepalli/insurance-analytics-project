@@ -54,7 +54,15 @@ def _parse_client_config(
     with open(config_path, encoding="utf-8") as fh:
         cfg = yaml.safe_load(fh)
 
-    client_id: str = cfg.get("client_id", "unknown")
+    if not isinstance(cfg, dict):
+        raise ValueError(
+            f"Client config '{config_path}' is not a valid YAML mapping "
+            f"(got {type(cfg).__name__ if cfg is not None else 'empty file'})."
+        )
+
+    client_id: str | None = cfg.get("client_id")
+    if not client_id:
+        raise ValueError(f"Client config '{config_path}' is missing required field 'client_id'.")
     client_name: str = cfg.get("client_name", client_id)
     files: dict = cfg.get("files", {})
     col_maps: dict = cfg.get("column_map", {})

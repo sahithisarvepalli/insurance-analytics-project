@@ -7,6 +7,7 @@ transformation logic is exercised in isolation.
 
 from __future__ import annotations
 
+import os
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -417,3 +418,38 @@ def test_run_transform_diagnosis_summary_total_claims_matches_input():
 
     ds = captured[0]
     assert ds["claims"].sum() == len(df)
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# output_dir parameter tests
+# ────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.unit
+def test_run_transform_uses_custom_output_dir(tmp_path):
+    """run_transform(output_dir=...) must write all CSV files into that directory."""
+    df = _make_joined_df()
+    mock_engine = MagicMock()
+    custom_dir = str(tmp_path / "client_x")
+    captured_paths: list[str] = []
+
+    def fake_to_csv(self, path, index=False):
+        captured_paths.append(path)
+
+    with (
+        patch("src.transform.get_engine", return_value=mock_engine),
+        patch("src.transform.pd.read_sql", return_value=df),
+        patch.object(pd.DataFrame, "to_csv", fake_to_csv),
+    ):
+        run_transform(output_dir=custom_dir)
+
+    assert captured_paths, "run_transform must write at least one CSV file"
+    for path in captured_paths:
+        assert path.startswith(
+            custom_dir
+        ), f"Expected every CSV to be written under '{custom_dir}', got '{path}'"
+    written_names = {os.path.basename(p) for p in captured_paths}
+    assert "kpis.csv" in written_names
+    assert "monthly.csv" in written_names
+    assert "loss_ratio.csv" in written_names
+    assert "network_summary.csv" in written_names
