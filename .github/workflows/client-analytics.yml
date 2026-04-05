@@ -241,6 +241,10 @@ jobs:
     name: Build Pages artifact (PR-friendly)
     needs: [set-matrix, analytics]
     runs-on: ubuntu-latest
+    # Only build (no deploy) on PRs and workflow_call. On main, publish-dashboard
+    # owns the Pages artifact upload to avoid a 409 Conflict from two jobs both
+    # calling upload-pages-artifact@v3 in the same workflow run.
+    if: ${{ github.ref != 'refs/heads/main' || github.event_name == 'workflow_call' }}
     steps:
       - uses: actions/checkout@v4
 
