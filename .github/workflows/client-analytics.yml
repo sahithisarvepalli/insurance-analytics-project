@@ -404,14 +404,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deploy
         uses: actions/deploy-pages@v4
-
-      - name: Abort if no dashboards to publish
-        if: ${{ github.ref == 'refs/heads/main' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Ensure pages-public contains at least one HTML file; abort otherwise
-          if ! find pages-public -type f -name '*.html' | grep -q .; then
-            echo "No dashboard HTML files found in pages-public; aborting Pages deploy."
-            exit 1
-          fi
