@@ -237,13 +237,78 @@ jobs:
   #
   # Once enabled, the dashboard will be published at:
   #   https://<owner>.github.io/<repo>/
+  build-pages:
+    name: Build Pages artifact (PR-friendly)
+    needs: [set-matrix, analytics]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download client artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: report-${{ matrix.client }}-run${{ github.run_number }}
+          path: _artifacts/${{ matrix.client }}
+        continue-on-error: true
+
+      - name: Stage dashboard for Pages
+        shell: bash
+        run: |
+          src="_artifacts/${{ matrix.client }}"
+          dst="pages/${{ matrix.client }}"
+          if [ -f "${src}/dashboard.html" ]; then
+            mkdir -p "${dst}"
+            cp "${src}/dashboard.html" "${dst}/"
+          else
+            echo "No dashboard.html found for ${{ matrix.client }}; skipping."
+          fi
+
+      - name: Build Pages index
+        shell: bash
+        run: |
+          python - <<'PYEOF'
+          import os, pathlib
+          pages_dir = pathlib.Path('pages')
+          clients = []
+          if pages_dir.exists():
+              for d in sorted(pages_dir.iterdir()):
+                  if d.is_dir() and (d / 'dashboard.html').exists():
+                      clients.append(d.name)
+          links_html = ''
+          for client in clients:
+              links_html += f"<li><a href='{client}/dashboard.html'>📊 {client.replace('_',' ').title()} Dashboard</a></li>"
+          if not links_html:
+              links_html = '<li><em>No dashboards available yet.</em></li>'
+          pages_dir.mkdir(parents=True, exist_ok=True)
+          html = f'<!doctype html><html><body><h1>Client Dashboards</h1><ul>{links_html}</ul></body></html>'
+          (pages_dir / 'index.html').write_text(html, encoding='utf-8')
+          PYEOF
+
+      - name: Prepare sanitized Pages content
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf pages-public
+          mkdir -p pages-public
+          if [ -d pages ]; then
+            find pages -type f -name '*.html' | while IFS= read -r file; do
+              rel_path="${file#pages/}"
+              mkdir -p "pages-public/$(dirname "$rel_path")"
+              cp "$file" "pages-public/$rel_path"
+            done
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages-public
   publish-dashboard:
     name: Publish Dashboard to GitHub Pages
     needs: [set-matrix, analytics]
-    # Skip Pages deployment when this workflow is invoked from another workflow
-    # (e.g. CI smoke-test). Pages should only be published on scheduled or
-    # manual runs to avoid unnecessary deployments on every PR/push.
-    if: ${{ needs.analytics.result == 'success' && github.event_name != 'workflow_call' }}
+    # Only publish from the main branch on scheduled or manual runs. Skip when
+    # invoked via PRs, workflow_call (CI), or feature branches to avoid
+    # attempting Pages configuration where Pages is not enabled.
+    if: ${{ needs.analytics.result == 'success' && github.event_name != 'workflow_call' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
       pages: write
