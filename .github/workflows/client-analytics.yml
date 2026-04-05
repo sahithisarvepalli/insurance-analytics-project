@@ -115,6 +115,104 @@ jobs:
             --client-name "${{ matrix.client }}" \
             --out outputs/${{ matrix.client }}/insurance_summary.xlsx
 
+      # ── Interactive HTML dashboard ──────────────────────────────────────────
+      - name: Install dashboard dependencies
+        run: pip install -r requirements-dashboard.txt
+
+      - name: Generate interactive HTML dashboard
+        run: |
+          python -m src.generate_html_report \
+            --output-dir outputs/${{ matrix.client }} \
+            --client-name "${{ matrix.client }}" \
+            --out outputs/${{ matrix.client }}/dashboard.html
+
+      # ── GitHub Actions Job Summary ──────────────────────────────────────────
+      # Writes key metrics as markdown tables directly into the workflow run
+      # summary page, viewable at Actions > <run> on GitHub — no extra setup.
+      - name: Write job summary
+        shell: bash
+        env:
+          CLIENT: ${{ matrix.client }}
+          OUT_DIR: outputs/${{ matrix.client }}
+        run: |
+          python - <<'PYEOF'
+          import os, pandas as pd
+
+          client   = os.environ["CLIENT"]
+          out_dir  = os.environ["OUT_DIR"]
+          summary  = os.environ["GITHUB_STEP_SUMMARY"]
+
+          def df_to_md(df):
+              """Convert a DataFrame to a GitHub-flavored markdown table."""
+              df = df.copy()
+              for col in df.select_dtypes(include="float").columns:
+                  df[col] = df[col].round(2)
+              header = "| " + " | ".join(str(c) for c in df.columns) + " |"
+              sep    = "| " + " | ".join("---" for _ in df.columns) + " |"
+              rows   = ["| " + " | ".join(str(v) for v in row) + " |"
+                        for row in df.values]
+              return "\n".join([header, sep] + rows)
+
+          lines = [f"## 📊 Analytics Dashboard — {client}\n\n"]
+
+          # KPIs summary card
+          kpis_path = os.path.join(out_dir, "kpis.csv")
+          if os.path.exists(kpis_path):
+              df = pd.read_csv(kpis_path)
+              total_claims = int(df["claims"].sum())
+              total_paid   = df["paid_total"].sum()
+              avg_paid     = total_paid / total_claims if total_claims > 0 else 0.0
+              lines.append("### 📈 Key Metrics\n")
+              lines.append(f"| Metric | Value |\n| --- | --- |\n"
+                           f"| Total Claims | {total_claims:,} |\n"
+                           f"| Total Paid | ${total_paid:,.2f} |\n"
+                           f"| Avg Paid per Claim | ${avg_paid:,.2f} |\n")
+              lines.append("\n### KPIs by Region & Network\n")
+              lines.append(df_to_md(df) + "\n")
+
+          # Monthly summary
+          monthly_path = os.path.join(out_dir, "monthly.csv")
+          if os.path.exists(monthly_path):
+              df = pd.read_csv(monthly_path)
+              lines.append("\n### 📅 Monthly Trends (latest 6 months)\n")
+              lines.append(df_to_md(df.tail(6)) + "\n")
+
+          # Loss ratio
+          lr_path = os.path.join(out_dir, "loss_ratio.csv")
+          if os.path.exists(lr_path):
+              df = pd.read_csv(lr_path)
+              lines.append("\n### 💰 Loss Ratio by Region & Network\n")
+              lines.append(df_to_md(df) + "\n")
+
+          # Network utilization
+          net_path = os.path.join(out_dir, "network_summary.csv")
+          if os.path.exists(net_path):
+              df = pd.read_csv(net_path)
+              lines.append("\n### 🌐 Network Utilization\n")
+              lines.append(df_to_md(df) + "\n")
+
+          # Diagnosis top-5
+          dx_path = os.path.join(out_dir, "diagnosis_summary.csv")
+          if os.path.exists(dx_path):
+              df = pd.read_csv(dx_path).head(5)
+              lines.append("\n### 🏥 Top 5 Diagnosis Codes by Paid Total\n")
+              lines.append(df_to_md(df) + "\n")
+
+          # Model metrics
+          mm_path = os.path.join(out_dir, "model_metrics.txt")
+          if os.path.exists(mm_path):
+              with open(mm_path) as fh:
+                  lines.append("\n### 🤖 Model Metrics\n```\n" + fh.read().strip() + "\n```\n")
+
+          lines.append(f"\n> 📎 **Interactive dashboard**: download the `report-{client}-run*` "
+                       f"artifact and open `dashboard.html` in your browser.\n")
+          lines.append(f"> 🌐 **GitHub Pages**: see the live dashboard after the "
+                       f"`publish-dashboard` job completes.\n")
+
+          with open(summary, "a", encoding="utf-8") as fh:
+              fh.write("\n".join(lines))
+          PYEOF
+
       # ── Upload per-client report artifact ───────────────────────────────────
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
@@ -122,3 +220,175 @@ jobs:
           name: report-${{ matrix.client }}-run${{ github.run_number }}
           path: outputs/${{ matrix.client }}/
           retention-days: 30
+
+  # ── Publish dashboards to GitHub Pages ──────────────────────────────────────
+  # Requires GitHub Pages to be enabled in the repository settings with
+  # source set to "GitHub Actions".  Navigate to:
+  #   Settings → Pages → Build and deployment → Source → GitHub Actions
+  #
+  # Once enabled, the dashboard will be published at:
+  #   https://<owner>.github.io/<repo>/
+  publish-dashboard:
+    name: Publish Dashboard to GitHub Pages
+    needs: [set-matrix, analytics]
+    if: ${{ needs.analytics.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Download per-client artifacts into a staging area, then copy only
+      # dashboard.html into the Pages directory to avoid exposing .duckdb,
+      # .xlsx, and raw CSVs via the public GitHub Pages URL.
+      - name: Download client_a artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: report-client_a-run${{ github.run_number }}
+          path: _artifacts/client_a
+        continue-on-error: true
+
+      - name: Stage client_a dashboard for Pages
+        shell: bash
+        run: |
+          src="_artifacts/client_a"
+          dst="pages/client_a"
+          if [ -f "${src}/dashboard.html" ]; then
+            mkdir -p "${dst}"
+            cp "${src}/dashboard.html" "${dst}/"
+          else
+            echo "No dashboard.html found for client_a; skipping."
+          fi
+
+      - name: Download client_b artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: report-client_b-run${{ github.run_number }}
+          path: _artifacts/client_b
+        continue-on-error: true
+
+      - name: Stage client_b dashboard for Pages
+        shell: bash
+        run: |
+          src="_artifacts/client_b"
+          dst="pages/client_b"
+          if [ -f "${src}/dashboard.html" ]; then
+            mkdir -p "${dst}"
+            cp "${src}/dashboard.html" "${dst}/"
+          else
+            echo "No dashboard.html found for client_b; skipping."
+          fi
+
+      # Build a simple index page that links to every client dashboard.
+      - name: Build Pages index
+        shell: bash
+        run: |
+          python - <<'PYEOF'
+          import os, pathlib, datetime
+
+          pages_dir = pathlib.Path("pages")
+          run_number = os.environ.get("GITHUB_RUN_NUMBER", "?")
+          run_id     = os.environ.get("GITHUB_RUN_ID", "")
+          repo       = os.environ.get("GITHUB_REPOSITORY", "")
+          timestamp  = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
+          # Collect clients that have a dashboard.html
+          clients = []
+          for d in sorted(pages_dir.iterdir()):
+              if d.is_dir() and (d / "dashboard.html").exists():
+                  clients.append(d.name)
+
+          links_html = ""
+          for client in clients:
+              links_html += f"""
+                <li>
+                  <a class="client-link" href="{client}/dashboard.html">
+                    📊 {client.replace("_", " ").title()} Dashboard
+                  </a>
+                  <span class="badge">run #{run_number}</span>
+                </li>"""
+
+          if not links_html:
+              links_html = "<li><em>No dashboards available yet. Run the analytics workflow first.</em></li>"
+
+          actions_url = f"https://github.com/{repo}/actions/runs/{run_id}" if run_id else "#"
+
+          html = f"""<!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8"/>
+            <meta name="viewport" content="width=device-width,initial-scale=1"/>
+            <title>Insurance Analytics — Dashboard Hub</title>
+            <style>
+              *, *::before, *::after {{box-sizing:border-box;margin:0;padding:0;}}
+              body {{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+                     background:#F5F7FA;color:#212121;}}
+              header {{background:#1565C0;color:#fff;padding:20px 32px;}}
+              header h1 {{font-size:1.5rem;font-weight:600;margin:0;}}
+              header small {{font-size:0.8rem;opacity:0.8;}}
+              main {{padding:32px;max-width:800px;}}
+              h2 {{font-size:1.1rem;color:#555;margin:0 0 16px;
+                   text-transform:uppercase;letter-spacing:0.05em;}}
+              ul {{list-style:none;padding:0;display:grid;gap:12px;}}
+              li {{background:#fff;border-radius:8px;padding:16px 20px;
+                   box-shadow:0 1px 4px rgba(0,0,0,0.08);
+                   display:flex;align-items:center;justify-content:space-between;}}
+              .client-link {{text-decoration:none;color:#1565C0;font-weight:500;font-size:1rem;}}
+              .client-link:hover {{text-decoration:underline;}}
+              .badge {{font-size:0.75rem;background:#E3F2FD;color:#1565C0;
+                       padding:4px 10px;border-radius:12px;font-weight:500;}}
+              footer {{padding:20px 32px;font-size:0.75rem;color:#aaa;}}
+              footer a {{color:#1565C0;}}
+            </style>
+          </head>
+          <body>
+            <header>
+              <h1>🏥 Insurance Analytics — Dashboard Hub</h1>
+              <small>Last updated: {timestamp} ·
+                <a href="{actions_url}" style="color:#90CAF9;">Workflow run #{run_number}</a>
+              </small>
+            </header>
+            <main>
+              <h2>Client Dashboards</h2>
+              <ul>{links_html}</ul>
+            </main>
+            <footer>
+              Generated by the
+              <a href="https://github.com/{repo}">Insurance Analytics Pipeline</a>.
+              Enable GitHub Pages (Settings → Pages → GitHub Actions) to view this site.
+            </footer>
+          </body>
+          </html>"""
+
+          (pages_dir / "index.html").write_text(html, encoding="utf-8")
+          print(f"index.html written with {len(clients)} client(s): {clients}")
+          PYEOF
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare sanitized Pages content
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf pages-public
+          mkdir -p pages-public
+          find pages -type f -name '*.html' | while IFS= read -r file; do
+            rel_path="${file#pages/}"
+            mkdir -p "pages-public/$(dirname "$rel_path")"
+            cp "$file" "pages-public/$rel_path"
+          done
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages-public
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
