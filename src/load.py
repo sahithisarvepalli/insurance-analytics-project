@@ -3,6 +3,7 @@
 import argparse
 from importlib import resources
 
+import pandas as pd
 from sqlalchemy import inspect, text
 
 from .utils import get_engine, logger
@@ -69,6 +70,35 @@ def _insert_dataframes(
     members_df = members_df[[c for c in member_cols if c in members_df.columns]]
     providers_df = providers_df[[c for c in provider_cols if c in providers_df.columns]]
     claims_df = claims_df[[c for c in claim_cols if c in claims_df.columns]]
+
+    # Map non-numeric external IDs to surrogate BIGINT keys expected by the
+    # canonical DDL. If a client provides string IDs (eg. 'P01') we create a
+    # numeric mapping and rewrite both the dimension and claim foreign keys.
+    def _map_to_surrogate(dim_df: pd.DataFrame, key: str, fk_df: pd.DataFrame):
+        if key not in dim_df.columns:
+            return dim_df, fk_df
+        # If values are already integer-like, leave alone
+        if pd.api.types.is_integer_dtype(dim_df[key]) and pd.api.types.is_integer_dtype(fk_df[key]):
+            return dim_df, fk_df
+
+        # Create consistent mapping based on the dimension's unique values
+        orig_vals = dim_df[key].astype(str).fillna("__NULL__")
+        uniques = pd.Series(orig_vals.unique())
+        mapping = {orig: i + 1 for i, orig in enumerate(uniques)}
+
+        dim_df = dim_df.copy()
+        dim_df[key] = orig_vals.map(lambda v: mapping.get(v, None))
+
+        fk_df = fk_df.copy()
+        fk_df[key] = fk_df[key].astype(str).fillna("__NULL__").map(lambda v: mapping.get(v, None))
+        return dim_df, fk_df
+
+    providers_df, claims_df = _map_to_surrogate(providers_df, "provider_id", claims_df)
+    members_df, claims_df = _map_to_surrogate(members_df, "member_id", claims_df)
+
+    # claim_id is BIGSERIAL and not referenced by any FK; drop string values
+    # so Postgres auto-generates valid integer PKs.
+    claims_df = claims_df.drop(columns=["claim_id"], errors="ignore")
 
     members_df.to_sql("member", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
     providers_df.to_sql("provider", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
