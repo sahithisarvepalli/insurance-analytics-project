@@ -240,10 +240,10 @@ jobs:
   publish-dashboard:
     name: Publish Dashboard to GitHub Pages
     needs: [set-matrix, analytics]
-    # Skip Pages deployment when this workflow is invoked from another workflow
-    # (e.g. CI smoke-test). Pages should only be published on scheduled or
-    # manual runs to avoid unnecessary deployments on every PR/push.
-    if: ${{ needs.analytics.result == 'success' && github.event_name != 'workflow_call' }}
+    # Only publish from the main branch on scheduled or manual runs. Skip when
+    # invoked via PRs, workflow_call (CI), or feature branches to avoid
+    # attempting Pages configuration where Pages is not enabled.
+    if: ${{ needs.analytics.result == 'success' && github.event_name != 'workflow_call' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
       pages: write
