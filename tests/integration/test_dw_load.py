@@ -1,6 +1,8 @@
 import duckdb
+import pytest
 
 from src.dw_load import run_dw_load
+from src.transform import run_transform
 
 
 def test_dw_load_creates_tables_and_counts(tmp_path):
@@ -35,5 +37,41 @@ def test_dw_load_creates_tables_and_counts(tmp_path):
             "SELECT claim_id, COUNT(*) AS c FROM fact_claims GROUP BY claim_id HAVING COUNT(*) > 1"
         ).fetchall()
         assert len(dup) == 0
+    finally:
+        conn.close()
+
+
+@pytest.mark.integration
+def test_dw_load_with_custom_output_dir(tmp_path):
+    """run_dw_load must load summary CSVs from a non-default output_dir.
+
+    Mirrors the GitHub Actions matrix usage where each client has its own
+    isolated output directory (e.g. outputs/client_a/).
+    """
+    custom_dir = str(tmp_path / "client_test")
+    dw_path = str(tmp_path / "client_test_dw.duckdb")
+
+    # Generate the summary CSVs in the custom directory via run_transform
+    run_transform(output_dir=custom_dir)
+
+    # Now load the DW using the same custom directory — should pick up those CSVs
+    run_dw_load(dw_path, output_dir=custom_dir)
+
+    conn = duckdb.connect(dw_path)
+    try:
+        tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
+        summary_tables = {
+            "summary_kpis",
+            "summary_monthly",
+            "summary_loss_ratio",
+            "summary_network",
+        }
+        assert summary_tables.issubset(tables), (
+            f"Expected summary tables to be loaded from '{custom_dir}', "
+            f"missing: {summary_tables - tables}"
+        )
+        # Summary tables must contain rows loaded from the custom dir
+        kpi_count = conn.execute("SELECT COUNT(*) FROM summary_kpis").fetchone()[0]
+        assert kpi_count > 0, "summary_kpis must be non-empty after loading from custom output_dir"
     finally:
         conn.close()

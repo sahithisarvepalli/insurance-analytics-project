@@ -245,16 +245,40 @@ def _evaluate_references(results: dict) -> list:
     return failures
 
 
-def load_summaries(dw: duckdb.DuckDBPyConnection) -> None:
-    """Create or replace the four summary tables from existing CSV transform outputs."""
-    _load_summary_csv(dw, "summary_kpis", "outputs/kpis.csv")
-    _load_summary_csv(dw, "summary_monthly", "outputs/monthly.csv")
-    _load_summary_csv(dw, "summary_loss_ratio", "outputs/loss_ratio.csv")
-    _load_summary_csv(dw, "summary_network", "outputs/network_summary.csv")
+def load_summaries(dw: duckdb.DuckDBPyConnection, output_dir: str = "outputs") -> None:
+    """Create or replace the four summary tables from existing CSV transform outputs.
+
+    Parameters
+    ----------
+    output_dir:
+        Directory containing the CSV files produced by ``src.transform``.
+        Defaults to ``"outputs"``; pass a client-specific path (e.g.
+        ``"outputs/client_a"``) to load per-client summaries.
+    """
+    _load_summary_csv(dw, "summary_kpis", os.path.join(output_dir, "kpis.csv"))
+    _load_summary_csv(dw, "summary_monthly", os.path.join(output_dir, "monthly.csv"))
+    _load_summary_csv(dw, "summary_loss_ratio", os.path.join(output_dir, "loss_ratio.csv"))
+    _load_summary_csv(dw, "summary_network", os.path.join(output_dir, "network_summary.csv"))
 
 
-def run_dw_load(path: str = _DEFAULT_DW_PATH, report_dir: str = "build/reports") -> None:
-    """Orchestrate the full DW load: dimensions → fact table → summary tables."""
+def run_dw_load(
+    path: str = _DEFAULT_DW_PATH,
+    report_dir: str = "build/reports",
+    output_dir: str = "outputs",
+) -> None:
+    """Orchestrate the full DW load: dimensions → fact table → summary tables.
+
+    Parameters
+    ----------
+    path:
+        Path for the DuckDB warehouse file.
+    report_dir:
+        Directory where the DW QA JSON report is written.
+    output_dir:
+        Directory containing the CSV transform outputs to load into summary tables.
+        Defaults to ``"outputs"``; pass a client-specific path (e.g.
+        ``"outputs/client_a"``) for per-client warehouse files.
+    """
     engine = get_engine()
     dw = get_dw_conn(path)
     try:
@@ -262,7 +286,7 @@ def run_dw_load(path: str = _DEFAULT_DW_PATH, report_dir: str = "build/reports")
         load_dim_provider(dw, engine)
         load_dim_date(dw)
         load_fact_claims(dw, engine)
-        load_summaries(dw)
+        load_summaries(dw, output_dir=output_dir)
         # Run lightweight DW quality checks (row counts, PK uniqueness, referential integrity)
         try:
             results = run_quality_checks(dw)
@@ -290,5 +314,24 @@ def _write_qa_report(results: dict, report_dir: str = "build/reports") -> None:
 
 
 if __name__ == "__main__":
-    dw_path = os.getenv("DW_PATH", _DEFAULT_DW_PATH)
-    run_dw_load(dw_path)
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Load the insurance DuckDB data warehouse.")
+    ap.add_argument(
+        "--dw-path",
+        default=os.getenv("DW_PATH", _DEFAULT_DW_PATH),
+        help="Path to the DuckDB warehouse file (default: outputs/insurance_dw.duckdb).",
+    )
+    ap.add_argument(
+        "--output-dir",
+        default="outputs",
+        help="Directory containing transform CSV outputs to load into summary tables "
+        "(default: outputs).",
+    )
+    ap.add_argument(
+        "--report-dir",
+        default="build/reports",
+        help="Directory where the DW QA JSON report is written (default: build/reports).",
+    )
+    _args = ap.parse_args()
+    run_dw_load(_args.dw_path, report_dir=_args.report_dir, output_dir=_args.output_dir)

@@ -277,3 +277,23 @@ def test_report_raises_on_invalid_kpis_columns(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     with pytest.raises(ValueError, match="KPIs output is missing required columns"):
         main(out_file)
+
+
+@pytest.mark.unit
+def test_report_uses_custom_output_dir(tmp_path):
+    """main() must read CSVs from output_dir without requiring chdir()."""
+    custom_dir = tmp_path / "client_x" / "outputs"
+    custom_dir.mkdir(parents=True)
+    _make_kpis().to_csv(custom_dir / "kpis.csv", index=False)
+    _make_monthly().to_csv(custom_dir / "monthly.csv", index=False)
+    _make_loss_ratio().to_csv(custom_dir / "loss_ratio.csv", index=False)
+    _make_network_summary().to_csv(custom_dir / "network_summary.csv", index=False)
+    _make_diagnosis_summary().to_csv(custom_dir / "diagnosis_summary.csv", index=False)
+
+    out_file = str(tmp_path / "client_report.xlsx")
+    # No chdir() — pass output_dir explicitly
+    main(out_file, output_dir=str(custom_dir))
+
+    xl = pd.ExcelFile(out_file)
+    required_sheets = {"KPIs", "Monthly", "LossRatio", "NetworkUtilization", "DiagnosisSummary"}
+    assert not required_sheets - set(xl.sheet_names)

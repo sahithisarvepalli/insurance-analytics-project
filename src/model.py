@@ -1,5 +1,6 @@
 """Logistic regression model for identifying high-cost insurance claimants."""
 
+import argparse
 import os
 
 import numpy as np
@@ -13,8 +14,16 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from .utils import get_engine, logger
 
 
-def run_model():
-    """Train a logistic regression model to predict high-cost members and write metrics."""
+def run_model(output_dir: str = "outputs"):
+    """Train a logistic regression model to predict high-cost members and write metrics.
+
+    Parameters
+    ----------
+    output_dir:
+        Directory where ``model_metrics.txt`` is written.  Defaults to ``"outputs"``.
+        Pass a client-specific path (e.g. ``"outputs/client_a"``) to isolate
+        per-client results.
+    """
     eng = get_engine()
     q = (
         "SELECT c.member_id, m.dob, m.region AS member_region, p.in_network, "
@@ -67,11 +76,18 @@ def run_model():
             "Fallback model path used due to insufficient class counts for stratified split: %s",
             class_counts.to_dict(),
         )
-    os.makedirs("outputs", exist_ok=True)
-    with open("outputs/model_metrics.txt", "w", encoding="utf-8") as fh:
+    os.makedirs(output_dir, exist_ok=True)
+    with open(os.path.join(output_dir, "model_metrics.txt"), "w", encoding="utf-8") as fh:
         fh.write(f"{metric_label}: {score:.4f}\n")
     logger.info("Model accuracy: %.4f", score)
 
 
 if __name__ == "__main__":
-    run_model()
+    ap = argparse.ArgumentParser(description="Run the high-cost member prediction model.")
+    ap.add_argument(
+        "--output-dir",
+        default="outputs",
+        help="Directory to write model_metrics.txt (default: outputs).",
+    )
+    args = ap.parse_args()
+    run_model(output_dir=args.output_dir)

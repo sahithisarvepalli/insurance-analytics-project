@@ -1,4 +1,4 @@
-"""Load a Kaggle insurance dataset into the PostgreSQL database."""
+"""Load insurance data (Kaggle or client CSV) into the PostgreSQL database."""
 
 import argparse
 from importlib import resources
@@ -48,15 +48,18 @@ def load_from_kaggle(config_path: str = "config/kaggle.yaml") -> None:
     from .kaggle_ingest import load_kaggle_data  # noqa: PLC0415
 
     dfs = load_kaggle_data(config_path)
-    members_df = dfs["members"]
-    providers_df = dfs["providers"]
-    claims_df = dfs["claims"]
+    _insert_dataframes(dfs["members"], dfs["providers"], dfs["claims"])
+    logger.info("Done loading Kaggle data.")
 
+
+def _insert_dataframes(
+    members_df,
+    providers_df,
+    claims_df,
+) -> None:
+    """Apply DDL, trim columns to schema, and insert all three DataFrames."""
     eng = get_engine()
 
-    # Apply DDL and reflect column names in one transaction.
-    # pandas 2.x to_sql() requires an Engine (not a Connection), so column
-    # trimming is done here and the inserts run against the engine directly.
     with eng.begin() as con:
         _apply_ddl(con)
         member_cols = _table_columns(con, "member")
@@ -71,19 +74,47 @@ def load_from_kaggle(config_path: str = "config/kaggle.yaml") -> None:
     providers_df.to_sql("provider", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
     claims_df.to_sql("claim", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
 
-    logger.info("Done loading Kaggle data.")
+
+def load_from_client_csv(config_path: str) -> None:
+    """Load a client's CSV dataset into the database using a client config file.
+
+    Reads file paths and column mappings from *config_path* (e.g.
+    ``config/clients/client_a.yaml``).  No external credentials are required —
+    the CSV files must already exist locally at the paths declared in the config.
+
+    Parameters
+    ----------
+    config_path:
+        Path to a client YAML config file under ``config/clients/``.
+    """
+    from .client_ingest import load_client_data  # noqa: PLC0415
+
+    dfs = load_client_data(config_path)
+    _insert_dataframes(dfs["members"], dfs["providers"], dfs["claims"])
+    logger.info("Done loading client CSV data from '%s'.", config_path)
 
 
 def main(parsed_args):
-    """Entry point: load a Kaggle dataset into the database."""
-    load_from_kaggle(parsed_args.kaggle_config)
+    """Entry point: load data (Kaggle or client CSV) into the database."""
+    if parsed_args.client_config:
+        load_from_client_csv(parsed_args.client_config)
+    else:
+        load_from_kaggle(parsed_args.kaggle_config)
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description="Load a Kaggle insurance dataset into PostgreSQL.")
+    ap = argparse.ArgumentParser(
+        description="Load insurance data (Kaggle or client CSV) into PostgreSQL."
+    )
     ap.add_argument(
         "--kaggle-config",
         default="config/kaggle.yaml",
         help="Path to the Kaggle dataset YAML config.",
+    )
+    ap.add_argument(
+        "--client-config",
+        default=None,
+        help="Path to a client CSV YAML config (e.g. config/clients/client_a.yaml). "
+        "When provided, client CSV data is loaded instead of Kaggle.",
     )
     main(ap.parse_args())
