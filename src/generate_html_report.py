@@ -2,8 +2,8 @@
 
 Reads the same CSVs produced by ``src/transform.py`` and ``src/model.py`` and
 assembles a self-contained, single-file HTML dashboard with interactive Plotly
-charts.  No web server or external CDN is required — the output file opens
-directly in any modern browser.
+charts.  The Plotly JS bundle is embedded inline from the installed package so
+no web server or internet connection is required to view the file.
 
 Charts included
 ---------------
@@ -25,6 +25,7 @@ Usage
 from __future__ import annotations
 
 import argparse
+import html as html_mod
 import os
 import pathlib
 from datetime import datetime, timezone
@@ -48,7 +49,18 @@ _ORANGE = "#EF6C00"
 _GREEN = "#2E7D32"
 _RED = "#C62828"
 _GREY = "#757575"
-_NETWORK_COLORS = {True: _BLUE, False: _ORANGE, "True": _BLUE, "False": _ORANGE}
+
+
+def _normalize_network(value: object) -> str:
+    """Return ``'In-Network'`` or ``'Out-of-Network'`` for any in_network encoding."""
+    s = str(value).strip().lower()
+    if s in ("true", "1", "yes"):
+        return "In-Network"
+    return "Out-of-Network"
+
+
+def _network_color(label: str) -> str:
+    return _BLUE if label == "In-Network" else _ORANGE
 
 
 # ── HTML page template ─────────────────────────────────────────────────────────
@@ -208,7 +220,7 @@ def _kpis_content(df: Optional[pd.DataFrame]) -> str:
 
     paid_total = df["paid_total"].sum()
     total_claims = df["claims"].sum()
-    paid_avg = df["paid_avg"].mean()
+    paid_avg = paid_total / total_claims if total_claims > 0 else 0.0
 
     metric_html = f"""
     <div class="metric-grid">
@@ -225,13 +237,18 @@ def _kpis_content(df: Optional[pd.DataFrame]) -> str:
       <div class="metric-card">
         <div class="label">Avg Paid per Claim</div>
         <div class="value">${paid_avg:,.2f}</div>
-        <div class="sub">average across segments</div>
+        <div class="sub">Total paid / total claims</div>
       </div>
     </div>
     """
 
     region_df = df.groupby("member_region")[["claims", "paid_total"]].sum().reset_index()
-    network_vals = df["in_network"].astype(str).unique()
+
+    # Normalise in_network to a canonical label so colours are consistent
+    # regardless of whether the column holds bool, int, or string values.
+    df = df.copy()
+    df["_nw_label"] = df["in_network"].map(_normalize_network)
+    network_labels = sorted(df["_nw_label"].unique())
 
     fig = make_subplots(
         rows=1,
@@ -240,17 +257,15 @@ def _kpis_content(df: Optional[pd.DataFrame]) -> str:
         horizontal_spacing=0.12,
     )
 
-    for nw in sorted(network_vals):
-        sub = df[df["in_network"].astype(str) == nw]
+    for label in network_labels:
+        sub = df[df["_nw_label"] == label]
         by_region = sub.groupby("member_region")["paid_total"].sum().reset_index()
-        label = "In-Network" if nw in ("True", "1", "true") else "Out-of-Network"
-        color = _NETWORK_COLORS.get(nw, _GREY)
         fig.add_trace(
             go.Bar(
                 name=label,
                 x=by_region["member_region"],
                 y=by_region["paid_total"],
-                marker_color=color,
+                marker_color=_network_color(label),
             ),
             row=1,
             col=1,
@@ -288,6 +303,11 @@ def _monthly_content(df: Optional[pd.DataFrame]) -> str:
 
     df = df.copy()
     df["month"] = pd.to_datetime(df["month"])
+
+    # Aggregate across in_network so each region has one line per month,
+    # avoiding duplicate x-values when the CSV is grouped by
+    # [month, member_region, in_network].
+    df = df.groupby(["month", "member_region"])[["paid_total", "claims"]].sum().reset_index()
 
     fig = make_subplots(
         rows=2,
@@ -402,12 +422,8 @@ def _network_content(df: Optional[pd.DataFrame]) -> str:
     if df is None or df.empty:
         return '<div class="no-data">No network utilization data available.</div>'
 
-    labels = (
-        df["in_network"]
-        .astype(str)
-        .map(lambda v: "In-Network" if v in ("True", "1", "true") else "Out-of-Network")
-    )
-    colors = [_BLUE if "In" in str(lb) else _ORANGE for lb in labels]
+    labels = df["in_network"].map(_normalize_network)
+    colors = [_network_color(lb) for lb in labels]
 
     fig = make_subplots(
         rows=1,
@@ -512,7 +528,8 @@ def _model_content(metrics_text: Optional[str]) -> str:
 
     lines = metrics_text.strip().splitlines()
     rows_html = "".join(
-        f'<tr><td style="padding:8px 16px;border-bottom:1px solid #eee;">{line}</td></tr>'
+        f'<tr><td style="padding:8px 16px;border-bottom:1px solid #eee;">'
+        f"{html_mod.escape(line)}</td></tr>"
         for line in lines
     )
 
@@ -532,23 +549,30 @@ def _model_content(metrics_text: Optional[str]) -> str:
 
 
 def _get_plotly_js_tag() -> str:
-    """Return a ``<script>`` tag containing the Plotly JS bundle.
+    """Return a ``<script>`` tag containing the embedded Plotly JS bundle.
 
-    Tries to embed the bundle from the installed package first so the
-    resulting HTML is truly self-contained.  Falls back to the CDN if the
-    package data file cannot be found.
+    Reads the bundle shipped with the installed ``plotly`` package so the
+    resulting HTML is fully self-contained and works without any internet
+    connection.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the expected Plotly package data file cannot be located.  This
+        typically means the installed version of plotly is too old or the
+        package layout has changed.  Re-install with
+        ``pip install 'plotly>=5.18.0,<6.0.0'``.
     """
     import plotly as _plotly  # noqa: PLC0415
 
-    candidates = [
-        pathlib.Path(_plotly.__file__).parent / "package_data" / "plotly.min.js",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            js = candidate.read_text(encoding="utf-8")
-            return f"<script>{js}</script>"
-    # CDN fallback (requires internet access when viewing)
-    return '<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>'
+    candidate = pathlib.Path(_plotly.__file__).parent / "package_data" / "plotly.min.js"
+    if candidate.exists():
+        js = candidate.read_text(encoding="utf-8")
+        return f"<script>{js}</script>"
+    raise FileNotFoundError(
+        f"Plotly JS bundle not found at '{candidate}'.  "
+        "Re-install plotly with: pip install 'plotly>=5.18.0,<6.0.0'"
+    )
 
 
 # ── Dashboard assembly ─────────────────────────────────────────────────────────
@@ -622,7 +646,7 @@ def generate_dashboard(output_dir: str, client_name: str, brand_color: str = _BL
     plotly_js = _get_plotly_js_tag()
 
     return _HTML_TEMPLATE.format(
-        client_name=client_name,
+        client_name=html_mod.escape(client_name),
         brand_color=brand_color,
         timestamp=timestamp,
         plotly_js=plotly_js,

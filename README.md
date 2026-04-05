@@ -92,18 +92,16 @@ Full setup guide: [docs/setup.md](docs/setup.md)
 
 ---
 
----
-
 ## Reports Dashboard
 
-After every successful  workflow run the pipeline publishes
+After every successful `client-analytics` workflow run the pipeline publishes
 an interactive dashboard directly on GitHub — **no paid tools required**.
 
 | Access method | How | Interactivity |
 |---------------|-----|---------------|
-| **GitHub Actions Job Summary** |  | Tables + KPI cards, visible immediately |
-| **HTML artifact** | Download  → open  | Full Plotly charts — pan, zoom, hover |
-| **GitHub Pages** |  (enable Pages once in Settings) | Persistent URL, per-client dashboards |
+| **GitHub Actions Job Summary** | Open **Actions** → select the completed run → view the **Summary** tab | Tables + KPI cards, visible immediately |
+| **HTML artifact** | Open **Actions** → select the run → under **Artifacts**, download `report-<client>-run*` and open `dashboard.html` locally | Full Plotly charts — pan, zoom, hover |
+| **GitHub Pages** | Enable once: **Settings → Pages → Source → GitHub Actions**, then open `https://<owner>.github.io/<repo>/` | Persistent URL, per-client dashboards |
 
 > One-time setup for GitHub Pages: **Settings → Pages → Source → GitHub Actions**
 

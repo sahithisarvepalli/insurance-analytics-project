@@ -161,7 +161,7 @@ jobs:
               df = pd.read_csv(kpis_path)
               total_claims = int(df["claims"].sum())
               total_paid   = df["paid_total"].sum()
-              avg_paid     = df["paid_avg"].mean()
+              avg_paid     = total_paid / total_claims if total_claims > 0 else 0.0
               lines.append("### 📈 Key Metrics\n")
               lines.append(f"| Metric | Value |\n| --- | --- |\n"
                            f"| Total Claims | {total_claims:,} |\n"
@@ -231,7 +231,7 @@ jobs:
   publish-dashboard:
     name: Publish Dashboard to GitHub Pages
     needs: [set-matrix, analytics]
-    if: ${{ !cancelled() && needs.analytics.result != 'skipped' }}
+    if: ${{ needs.analytics.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -243,21 +243,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Download whichever client artifacts were produced in this run.
-      # continue-on-error so a missing client does not fail the publish step.
+      # Download per-client artifacts into a staging area, then copy only
+      # dashboard.html into the Pages directory to avoid exposing .duckdb,
+      # .xlsx, and raw CSVs via the public GitHub Pages URL.
       - name: Download client_a artifact
         uses: actions/download-artifact@v4
         with:
           name: report-client_a-run${{ github.run_number }}
-          path: pages/client_a
+          path: _artifacts/client_a
         continue-on-error: true
+
+      - name: Stage client_a dashboard for Pages
+        shell: bash
+        run: |
+          src="_artifacts/client_a"
+          dst="pages/client_a"
+          if [ -f "${src}/dashboard.html" ]; then
+            mkdir -p "${dst}"
+            cp "${src}/dashboard.html" "${dst}/"
+          else
+            echo "No dashboard.html found for client_a; skipping."
+          fi
 
       - name: Download client_b artifact
         uses: actions/download-artifact@v4
         with:
           name: report-client_b-run${{ github.run_number }}
-          path: pages/client_b
+          path: _artifacts/client_b
         continue-on-error: true
+
+      - name: Stage client_b dashboard for Pages
+        shell: bash
+        run: |
+          src="_artifacts/client_b"
+          dst="pages/client_b"
+          if [ -f "${src}/dashboard.html" ]; then
+            mkdir -p "${dst}"
+            cp "${src}/dashboard.html" "${dst}/"
+          else
+            echo "No dashboard.html found for client_b; skipping."
+          fi
 
       # Build a simple index page that links to every client dashboard.
       - name: Build Pages index
@@ -347,10 +372,22 @@ jobs:
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
 
+      - name: Prepare sanitized Pages content
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf pages-public
+          mkdir -p pages-public
+          find pages -type f -name '*.html' | while IFS= read -r file; do
+            rel_path="${file#pages/}"
+            mkdir -p "pages-public/$(dirname "$rel_path")"
+            cp "$file" "pages-public/$rel_path"
+          done
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: pages
+          path: pages-public
 
       - name: Deploy to GitHub Pages
         id: deploy

@@ -79,8 +79,9 @@ If Pages is not enabled, each workflow run still produces downloadable artifacts
 2. Scroll to **Artifacts** and download `report-<client>-run<N>`.
 3. Unzip and open `dashboard.html` in any browser.
 
-The HTML file is fully self-contained — no internet connection required after
-download.
+The HTML file is fully self-contained — the Plotly JS bundle is embedded
+inline from the installed package at generation time, so no internet connection
+is needed to view the charts.
 
 ---
 
