@@ -195,5 +195,5 @@ if __name__ == "__main__":
     )
     args = ap.parse_args()
     out_path = args.out or os.path.join(args.output_dir, "insurance_summary.xlsx")
-    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     main(out_path, output_dir=args.output_dir, client_name=args.client_name)

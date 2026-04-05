@@ -22,10 +22,15 @@ on:
   schedule:
     - cron: "0 6 * * 1" # Every Monday at 06:00 UTC
 
+permissions:
+  contents: read
+
 jobs:
   # ── Determine which clients to process ──────────────────────────────────────
   set-matrix:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       matrix: ${{ steps.matrix.outputs.value }}
     steps:
@@ -44,6 +49,8 @@ jobs:
     name: "Analytics — ${{ matrix.client }}"
     needs: set-matrix
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     strategy:
       fail-fast: false # one client failure should not cancel the other
