@@ -15,7 +15,7 @@ End-to-end insurance analytics platform built with Python + PostgreSQL. A SAS/DB
 ## Pipeline
 
 ```
-kaggle_ingest → [transform, model] → dw_load → report (Excel)
+kaggle_ingest → [transform, model] → dw_load → report (Excel + HTML dashboard)
 ```
 
 > **Pattern:** This project uses a hybrid **EtLT** approach. `kaggle_ingest` does light column-mapping ETL before writing to PostgreSQL. Everything downstream — `transform`, `model`, and `dw_load` — follows ELT: raw data loads first, then transformations run inside the system.
@@ -27,6 +27,7 @@ kaggle_ingest → [transform, model] → dw_load → report (Excel)
 | ML model (ELT) | `src/model.py` | `PROC LOGISTIC` |
 | DW load — star schema (ELT) | `src/dw_load.py` | `PROC DATASETS` + summary tables |
 | Excel report | `src/report.py` | `ODS Excel` |
+| HTML dashboard | `src/generate_html_report.py` | SAS Visual Analytics / ODS HTML |
 
 ---
 
@@ -91,6 +92,25 @@ Full setup guide: [docs/setup.md](docs/setup.md)
 
 ---
 
+---
+
+## Reports Dashboard
+
+After every successful  workflow run the pipeline publishes
+an interactive dashboard directly on GitHub — **no paid tools required**.
+
+| Access method | How | Interactivity |
+|---------------|-----|---------------|
+| **GitHub Actions Job Summary** |  | Tables + KPI cards, visible immediately |
+| **HTML artifact** | Download  → open  | Full Plotly charts — pan, zoom, hover |
+| **GitHub Pages** |  (enable Pages once in Settings) | Persistent URL, per-client dashboards |
+
+> One-time setup for GitHub Pages: **Settings → Pages → Source → GitHub Actions**
+
+See [docs/dashboard.md](docs/dashboard.md) for a full comparison of the current
+approach vs industry-standard BI tools (Apache Superset, Grafana, Metabase) and
+a recommended migration roadmap.
+
 ## Make Commands
 
 | Command | Description |
@@ -143,6 +163,7 @@ config/         Database and Kaggle dataset configuration (db.yaml, kaggle.yaml)
 | [docs/git.md](docs/git.md) | Git workflow and branching |
 | [concepts/README.md](concepts/README.md) | 11 Python learning modules |
 | [notebooks/README.md](notebooks/README.md) | Jupyter notebook usage |
+| [docs/dashboard.md](docs/dashboard.md) | Reports dashboard — current GitHub viewer vs industry-standard BI |
 
 ---
 

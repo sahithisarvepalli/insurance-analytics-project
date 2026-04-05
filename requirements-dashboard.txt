@@ -1,0 +1,11 @@
+# ============================================
+# Dashboard Visualization Dependencies
+# ============================================
+# Used exclusively by src/generate_html_report.py and the
+# report-dashboard CI step in client-analytics.yml.
+#
+# NOT part of the core pipeline — install on demand:
+#   pip install -r requirements-dashboard.txt
+# ============================================
+
+plotly>=5.18.0,<6.0.0
