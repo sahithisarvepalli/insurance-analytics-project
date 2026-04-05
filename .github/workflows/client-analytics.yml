@@ -1,0 +1,110 @@
+name: Client Analytics Pipeline
+
+# ── Trigger ──────────────────────────────────────────────────────────────────
+# Runs on a weekly schedule (every Monday at 06:00 UTC) or on demand.
+# Use the `client` input to run a single client or all clients.
+
+on:
+  workflow_dispatch:
+    inputs:
+      client:
+        description: >
+          Client ID to run analytics for.
+          Choose 'all' to process every registered client in parallel.
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - client_a
+          - client_b
+
+  schedule:
+    - cron: "0 6 * * 1" # Every Monday at 06:00 UTC
+
+jobs:
+  # ── Determine which clients to process ──────────────────────────────────────
+  set-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - id: matrix
+        shell: bash
+        run: |
+          INPUT="${{ inputs.client }}"
+          if [ -z "$INPUT" ] || [ "$INPUT" = "all" ]; then
+            echo 'value=["client_a","client_b"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "value=[\"$INPUT\"]" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── Per-client analytics pipeline ───────────────────────────────────────────
+  analytics:
+    name: "Analytics — ${{ matrix.client }}"
+    needs: set-matrix
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false # one client failure should not cancel the other
+      matrix:
+        client: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
+
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: insurdb
+        options: >-
+          --health-cmd="pg_isready -U postgres -d insurdb"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
+      PYTHONPATH: ${{ github.workspace }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python-env
+
+      # ── Load client data ────────────────────────────────────────────────────
+      - name: Load client data into PostgreSQL
+        run: |
+          python -m src.load \
+            --client-config config/clients/${{ matrix.client }}.yaml
+
+      # ── ETL pipeline ────────────────────────────────────────────────────────
+      - name: Run ETL transform
+        run: |
+          python -m src.transform \
+            --output-dir outputs/${{ matrix.client }}
+
+      # ── Predictive model ────────────────────────────────────────────────────
+      - name: Run high-cost member model
+        run: |
+          python -m src.model \
+            --output-dir outputs/${{ matrix.client }}
+
+      # ── Report generation ───────────────────────────────────────────────────
+      - name: Generate analytics report
+        run: |
+          python -m src.report \
+            --output-dir outputs/${{ matrix.client }} \
+            --client-name "${{ matrix.client }}" \
+            --out outputs/${{ matrix.client }}/insurance_summary.xlsx
+
+      # ── Upload per-client report artifact ───────────────────────────────────
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-${{ matrix.client }}-run${{ github.run_number }}
+          path: outputs/${{ matrix.client }}/
+          retention-days: 30

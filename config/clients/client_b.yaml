@@ -1,0 +1,33 @@
+# Client configuration for MedTrust Group
+# ---------------------------------------------------------------------------
+# Maps MedTrust's broker-portal CSV column names to the pipeline schema and
+# provides defaults for columns absent in their export format.
+# ---------------------------------------------------------------------------
+
+client_id: client_b
+client_name: "MedTrust Group"
+
+# Path to the client's CSV data file (relative to the repository root).
+files:
+  claims: clients/data/client_b/claims.csv
+
+# Rename source column names to pipeline schema column names.
+# Any source column NOT listed here is passed through unchanged.
+column_map:
+  claims:
+    member_no: member_id      # broker member number    → member_id
+    provider_ref: provider_id # provider reference code → provider_id
+    claim_date: service_date  # claim submission date   → service_date
+    dx_code: diagnosis_code   # diagnosis code          → diagnosis_code
+    proc_code: procedure_code # procedure code          → procedure_code
+    paid_usd: paid_amount     # paid amount in USD      → paid_amount
+    gender_code: gender       # gender code (M/F)       → gender
+    member_age: age           # member age in years     → age
+    territory: region         # sales territory         → region
+
+# Static values injected for required pipeline columns absent in MedTrust's file.
+defaults:
+  claims:
+    billed_amount: 0.0
+    allowed_amount: 0.0
+    place_of_service: "Office"

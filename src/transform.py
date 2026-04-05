@@ -1,5 +1,6 @@
 """Transform raw insurance claims data into KPI summaries and monthly aggregations."""
 
+import argparse
 import os
 
 import pandas as pd
@@ -11,8 +12,16 @@ _BILLED_AMOUNT_COL = "billed_amount"
 _ALLOWED_AMOUNT_COL = "allowed_amount"
 
 
-def run_transform():
-    """Run the full claims transformation pipeline and write CSV outputs."""
+def run_transform(output_dir: str = "outputs"):
+    """Run the full claims transformation pipeline and write CSV outputs.
+
+    Parameters
+    ----------
+    output_dir:
+        Directory where output CSV files are written.  Defaults to ``"outputs"``.
+        Pass a client-specific path (e.g. ``"outputs/client_a"``) to isolate
+        per-client reports.
+    """
     eng = get_engine()
 
     q = """
@@ -118,17 +127,24 @@ def run_transform():
     )
 
     # Persist
-    os.makedirs("outputs", exist_ok=True)
-    kpis.to_csv("outputs/kpis.csv", index=False)
-    monthly.to_csv("outputs/monthly.csv", index=False)
-    loss_ratio.to_csv("outputs/loss_ratio.csv", index=False)
-    network_summary.to_csv("outputs/network_summary.csv", index=False)
-    diagnosis_summary.to_csv("outputs/diagnosis_summary.csv", index=False)
+    os.makedirs(output_dir, exist_ok=True)
+    kpis.to_csv(os.path.join(output_dir, "kpis.csv"), index=False)
+    monthly.to_csv(os.path.join(output_dir, "monthly.csv"), index=False)
+    loss_ratio.to_csv(os.path.join(output_dir, "loss_ratio.csv"), index=False)
+    network_summary.to_csv(os.path.join(output_dir, "network_summary.csv"), index=False)
+    diagnosis_summary.to_csv(os.path.join(output_dir, "diagnosis_summary.csv"), index=False)
     logger.info(
-        "Wrote outputs/kpis.csv, outputs/monthly.csv, outputs/loss_ratio.csv, "
-        "outputs/network_summary.csv, outputs/diagnosis_summary.csv"
+        "Wrote %s/{kpis,monthly,loss_ratio,network_summary,diagnosis_summary}.csv",
+        output_dir,
     )
 
 
 if __name__ == "__main__":
-    run_transform()
+    ap = argparse.ArgumentParser(description="Run the insurance claims transformation pipeline.")
+    ap.add_argument(
+        "--output-dir",
+        default="outputs",
+        help="Directory to write output CSV files (default: outputs).",
+    )
+    args = ap.parse_args()
+    run_transform(output_dir=args.output_dir)
