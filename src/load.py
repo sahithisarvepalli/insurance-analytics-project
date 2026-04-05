@@ -101,7 +101,8 @@ def _insert_dataframes(
         fk_ids = fk_df[key].astype("string")
         missing_mask = fk_ids.notna() & ~fk_ids.isin(mapping)
         if missing_mask.any():
-            missing_ids = fk_ids[missing_mask].drop_duplicates().tolist()
+            # Limit to 100 before materialising to avoid large memory allocation.
+            missing_ids = fk_ids[missing_mask].drop_duplicates().head(100).tolist()
             sample = ", ".join(repr(v) for v in missing_ids[:5])
             extra = "" if len(missing_ids) <= 5 else f" (and {len(missing_ids) - 5} more)"
             raise ValueError(
