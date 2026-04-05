@@ -11,6 +11,8 @@ on:
       - "pyproject.toml"
       - "sonar-project.properties"
       - ".github/workflows/ci-postgres.yml"
+      - ".github/workflows/client-analytics.yml"
+      - ".github/workflows/run-pipeline.yml"
   pull_request:
     branches: [main, master]
     paths:
@@ -24,6 +26,8 @@ permissions:
   contents: read # allow checkout of source code
   pull-requests: write # allow SonarCloud & Copilot agent to post PR comments/suggestions
   security-events: write # allow uploading SARIF / security scan results
+  pages: write # required by client-analytics.yml publish-dashboard job (called via workflow_call)
+  id-token: write # required by client-analytics.yml publish-dashboard job (called via workflow_call)
 
 jobs:
   # ── JOB 1: Static Analysis & Linting ────────────────────────────────────────
@@ -125,7 +129,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./build/reports/coverage.xml
+          files: ./build/reports/coverage.xml
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
