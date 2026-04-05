@@ -18,6 +18,7 @@ on:
       - "tests/**"
       - "requirements.txt"
       - "pyproject.toml"
+      - ".github/workflows/**"
 
 permissions:
   contents: read # allow checkout of source code
