@@ -60,7 +60,7 @@ def _parse_client_config(
             f"(got {type(cfg).__name__ if cfg is not None else 'empty file'})."
         )
 
-    client_id: str | None = cfg.get("client_id")
+    client_id: str = cfg.get("client_id") or ""
     if not client_id:
         raise ValueError(f"Client config '{config_path}' is missing required field 'client_id'.")
     client_name: str = cfg.get("client_name", client_id)
