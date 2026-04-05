@@ -248,23 +248,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download client artifact
+      - name: Download client_a artifact
         uses: actions/download-artifact@v4
         with:
-          name: report-${{ matrix.client }}-run${{ github.run_number }}
-          path: _artifacts/${{ matrix.client }}
+          name: report-client_a-run${{ github.run_number }}
+          path: _artifacts/client_a
         continue-on-error: true
 
-      - name: Stage dashboard for Pages
+      - name: Stage client_a dashboard for Pages
         shell: bash
         run: |
-          src="_artifacts/${{ matrix.client }}"
-          dst="pages/${{ matrix.client }}"
+          src="_artifacts/client_a"
+          dst="pages/client_a"
           if [ -f "${src}/dashboard.html" ]; then
             mkdir -p "${dst}"
             cp "${src}/dashboard.html" "${dst}/"
           else
-            echo "No dashboard.html found for ${{ matrix.client }}; skipping."
+            echo "No dashboard.html found for client_a; skipping."
+          fi
+
+      - name: Download client_b artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: report-client_b-run${{ github.run_number }}
+          path: _artifacts/client_b
+        continue-on-error: true
+
+      - name: Stage client_b dashboard for Pages
+        shell: bash
+        run: |
+          src="_artifacts/client_b"
+          dst="pages/client_b"
+          if [ -f "${src}/dashboard.html" ]; then
+            mkdir -p "${dst}"
+            cp "${src}/dashboard.html" "${dst}/"
+          else
+            echo "No dashboard.html found for client_b; skipping."
           fi
 
       - name: Build Pages index
@@ -380,6 +399,7 @@ jobs:
 
           # Collect clients that have a dashboard.html
           clients = []
+          pages_dir.mkdir(parents=True, exist_ok=True)
           for d in sorted(pages_dir.iterdir()):
               if d.is_dir() and (d / "dashboard.html").exists():
                   clients.append(d.name)
