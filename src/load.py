@@ -3,6 +3,7 @@
 import argparse
 from importlib import resources
 
+import pandas as pd
 from sqlalchemy import inspect, text
 
 from .utils import get_engine, logger
@@ -69,6 +70,59 @@ def _insert_dataframes(
     members_df = members_df[[c for c in member_cols if c in members_df.columns]]
     providers_df = providers_df[[c for c in provider_cols if c in providers_df.columns]]
     claims_df = claims_df[[c for c in claim_cols if c in claims_df.columns]]
+
+    # Map non-numeric external IDs to surrogate BIGINT keys expected by the
+    # canonical DDL. If a client provides string IDs (eg. 'P01') we create a
+    # numeric mapping and rewrite both the dimension and claim foreign keys.
+    def _map_to_surrogate(dim_df: pd.DataFrame, key: str, fk_df: pd.DataFrame):
+        if key not in dim_df.columns or key not in fk_df.columns:
+            return dim_df, fk_df
+        # If values are already integer-like, leave alone
+        if pd.api.types.is_integer_dtype(dim_df[key]) and pd.api.types.is_integer_dtype(fk_df[key]):
+            return dim_df, fk_df
+
+        # If all non-null dimension values are purely numeric strings (e.g. "1001"),
+        # preserve their original numeric values instead of assigning new surrogates.
+        numeric_dim = pd.to_numeric(dim_df[key], errors="coerce")
+        if numeric_dim.isna().sum() == dim_df[key].isna().sum():
+            dim_df = dim_df.copy()
+            dim_df[key] = numeric_dim.astype("Int64")
+            fk_df = fk_df.copy()
+            fk_df[key] = pd.to_numeric(fk_df[key], errors="coerce").astype("Int64")
+            return dim_df, fk_df
+
+        # Create consistent mapping based on the dimension's non-null unique values.
+        # Use pandas' nullable string dtype so missing values remain missing instead
+        # of becoming the literal strings "nan"/"<NA>".
+        orig_vals = dim_df[key].astype("string")
+        uniques = pd.Series(orig_vals.dropna().unique())
+        mapping = {orig: i + 1 for i, orig in enumerate(uniques)}
+
+        fk_ids = fk_df[key].astype("string")
+        missing_mask = fk_ids.notna() & ~fk_ids.isin(mapping)
+        if missing_mask.any():
+            # Limit to 100 before materialising to avoid large memory allocation.
+            missing_ids = fk_ids[missing_mask].drop_duplicates().head(100).tolist()
+            sample = ", ".join(repr(v) for v in missing_ids[:5])
+            extra = "" if len(missing_ids) <= 5 else f" (and {len(missing_ids) - 5} more)"
+            raise ValueError(
+                f"Found unmapped non-null values for foreign key '{key}' while rewriting "
+                f"surrogate keys: {sample}{extra}"
+            )
+
+        dim_df = dim_df.copy()
+        dim_df[key] = orig_vals.map(mapping).astype("Int64")
+
+        fk_df = fk_df.copy()
+        fk_df[key] = fk_ids.map(mapping).astype("Int64")
+        return dim_df, fk_df
+
+    providers_df, claims_df = _map_to_surrogate(providers_df, "provider_id", claims_df)
+    members_df, claims_df = _map_to_surrogate(members_df, "member_id", claims_df)
+
+    # claim_id is BIGSERIAL and not referenced by any FK; drop string values
+    # so Postgres auto-generates valid integer PKs.
+    claims_df = claims_df.drop(columns=["claim_id"], errors="ignore")
 
     members_df.to_sql("member", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
     providers_df.to_sql("provider", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)

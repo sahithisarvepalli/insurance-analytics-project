@@ -19,6 +19,15 @@ on:
           - client_a
           - client_b
 
+  # Called by ci-postgres.yml on every src/** change so errors are caught early.
+  workflow_call:
+    inputs:
+      client:
+        description: Client ID to run ('all' for every registered client).
+        required: false
+        default: "all"
+        type: string
+
   schedule:
     - cron: "0 6 * * 1" # Every Monday at 06:00 UTC
 
@@ -231,7 +240,10 @@ jobs:
   publish-dashboard:
     name: Publish Dashboard to GitHub Pages
     needs: [set-matrix, analytics]
-    if: ${{ needs.analytics.result == 'success' }}
+    # Skip Pages deployment when this workflow is invoked from another workflow
+    # (e.g. CI smoke-test). Pages should only be published on scheduled or
+    # manual runs to avoid unnecessary deployments on every PR/push.
+    if: ${{ needs.analytics.result == 'success' && github.event_name != 'workflow_call' }}
     runs-on: ubuntu-latest
     permissions:
       pages: write

@@ -18,6 +18,7 @@ on:
       - "tests/**"
       - "requirements.txt"
       - "pyproject.toml"
+      - ".github/workflows/**"
 
 permissions:
   contents: read # allow checkout of source code
@@ -66,12 +67,24 @@ jobs:
       upload-outputs: false # CI only needs coverage/junit, not ETL outputs
     secrets: inherit
 
-  # ── JOB 2b: Collect coverage & upload ────────────────────────────────────────
+  # ── JOB 2b: Client analytics smoke test ─────────────────────────────────────
+  # Runs the full per-client analytics pipeline (load → transform → model →
+  # report) for every registered client in parallel.  This catches errors in
+  # src/ code that would only surface at client-load time (e.g. type mismatches
+  # between client CSVs and the DB schema) before they reach production.
+  client-analytics:
+    needs: lint
+    uses: ./.github/workflows/client-analytics.yml
+    with:
+      client: "all"
+    secrets: inherit
+
+  # ── JOB 2c: Collect coverage & upload ────────────────────────────────────────
   # Each job gets a fresh runner, so this job spins up its own Postgres service
   # and re-seeds the database before running tests.
   coverage:
     runs-on: ubuntu-latest
-    needs: etl
+    needs: [etl, client-analytics]
     env:
       DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
       PYTHONPATH: ${{ github.workspace }}
