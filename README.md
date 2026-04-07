@@ -139,10 +139,8 @@ src/                    Production source — EtLT pipeline, ML, reporting, DW l
 tests/                  Unit & integration tests (pytest + live PostgreSQL)
 config/                 Database, Kaggle, and client configuration
   clients/              Per-client column-mapping YAML configs
-data/                   All input data
+data/                   Runtime data (gitignored — pulled via Kaggle ingest)
   kaggle/               Downloaded Kaggle datasets (cached CSVs)
-  clients/              Client-supplied fixture CSVs
-  sample/               Toy sample data for concepts / examples
 outputs/                Generated reports and metrics (CSVs, DuckDB, XLSX, HTML)
 scripts/                Utility scripts (quality checks, sample data, dashboard server)
 examples/               Learning & reference materials

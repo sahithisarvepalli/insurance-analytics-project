@@ -8,7 +8,11 @@ import pandas as pd
 import pytest
 import yaml
 
-from src.client_ingest import _load_client_role_files, _parse_client_config, load_client_data
+from src.client_ingest import (
+    _load_client_role_files,
+    _parse_client_config,
+    load_client_data,
+)
 
 # ────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -204,10 +208,13 @@ def test_load_client_data_raises_on_missing_claims(tmp_path):
 
 @pytest.mark.unit
 def test_load_client_data_real_client_a_config():
-    """Smoke test: load the bundled Client A config and sample CSV."""
+    """Smoke test: load the Client A config and CSV (skipped if CSV not present)."""
     config_path = os.path.join("config", "clients", "client_a.yaml")
     if not os.path.exists(config_path):
         pytest.skip("Client A config not present — skipping smoke test.")
+    csv_path = os.path.join("data", "clients", "client_a", "claims.csv")
+    if not os.path.exists(csv_path):
+        pytest.skip("Client A CSV not present — data is pulled at runtime, not committed.")
     result = load_client_data(config_path)
     assert len(result["claims"]) > 0
     assert "paid_amount" in result["claims"].columns
@@ -216,10 +223,13 @@ def test_load_client_data_real_client_a_config():
 
 @pytest.mark.unit
 def test_load_client_data_real_client_b_config():
-    """Smoke test: load the bundled Client B config and sample CSV."""
+    """Smoke test: load the Client B config and CSV (skipped if CSV not present)."""
     config_path = os.path.join("config", "clients", "client_b.yaml")
     if not os.path.exists(config_path):
         pytest.skip("Client B config not present — skipping smoke test.")
+    csv_path = os.path.join("data", "clients", "client_b", "claims.csv")
+    if not os.path.exists(csv_path):
+        pytest.skip("Client B CSV not present — data is pulled at runtime, not committed.")
     result = load_client_data(config_path)
     assert len(result["claims"]) > 0
     assert "paid_amount" in result["claims"].columns

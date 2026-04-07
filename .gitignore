@@ -32,8 +32,6 @@ ENV/
 outputs/
 *.xlsx
 *.csv
-!data/clients/**/*.csv
-!data/sample/**/*.csv
 config/local*
 
 # OS
