@@ -144,6 +144,9 @@ include-naming-hint = true
 exclude_dirs = ["tests", "notebooks", "examples/concepts"]
 skips = ["B101", "B601"]
 
+[tool.ruff]
+line-length = 100
+
 [tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
