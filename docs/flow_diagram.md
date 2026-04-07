@@ -53,6 +53,12 @@ flowchart TD
         RP --> XL
     end
 
+    subgraph Dashboard["🖥️ Dashboard"]
+        GH["generate_html_report.py\nInteractive Plotly charts"]
+        HTML["dashboard.html\nSelf-contained HTML\n(open locally or deploy to Pages)"]
+        GH --> HTML
+    end
+
     subgraph Infra["⚙️ Infrastructure"]
         UT["utils.py\nDB connection · config loader"]
     end
@@ -65,27 +71,30 @@ flowchart TD
     M & P & C --> DW
     CSV1 & CSV2 & CSV3 & CSV4 --> DW
     CSV1 & CSV2 & CSV3 & CSV4 & CSV5 & TXT --> RP
+    CSV1 & CSV2 & CSV3 & CSV4 & CSV5 & TXT --> GH
 
     class KI,LD ingestion
     class M,P,C storage
     class TR,MO compute
-    class CSV1,CSV2,CSV3,CSV4,CSV5,TXT,XL output
+    class CSV1,CSV2,CSV3,CSV4,CSV5,TXT,XL,HTML output
     class UT infra
     class DW,DUCK warehouse
+    class GH compute
 ```
 
 ---
 
 ## 📋 Key Data Handoffs
 
-| From | To | What passes |
-|------|-----|------------|
-| `kaggle_ingest.py` | `load.py` | Pandas DataFrames (member, provider, claim) |
-| `load.py` | PostgreSQL | 3 relational tables |
-| PostgreSQL | `transform.py` | SQL JOINed query results |
-| `transform.py` | `outputs/` | 5 CSV files |
-| PostgreSQL | `model.py` | Aggregated member-level cost query |
-| `model.py` | `outputs/` | `model_metrics.txt` |
-| PostgreSQL + `outputs/` | `dw_load.py` | Dims/fact from Postgres; summaries from CSVs |
-| `dw_load.py` | `outputs/insurance_dw.duckdb` | Star-schema DuckDB warehouse |
-| `outputs/` | `report.py` | 6 files → 6 Excel sheets |
+| From                    | To                            | What passes                                               |
+| ----------------------- | ----------------------------- | --------------------------------------------------------- |
+| `kaggle_ingest.py`      | `load.py`                     | Pandas DataFrames (member, provider, claim)               |
+| `load.py`               | PostgreSQL                    | 3 relational tables                                       |
+| PostgreSQL              | `transform.py`                | SQL JOINed query results                                  |
+| `transform.py`          | `outputs/`                    | 5 CSV files                                               |
+| PostgreSQL              | `model.py`                    | Aggregated member-level cost query                        |
+| `model.py`              | `outputs/`                    | `model_metrics.txt`                                       |
+| PostgreSQL + `outputs/` | `dw_load.py`                  | Dims/fact from Postgres; summaries from CSVs              |
+| `dw_load.py`            | `outputs/insurance_dw.duckdb` | Star-schema DuckDB warehouse                              |
+| `outputs/`              | `report.py`                   | 6 files → 6 Excel sheets                                  |
+| `outputs/`              | `generate_html_report.py`     | 5 CSVs + model_metrics.txt → interactive `dashboard.html` |

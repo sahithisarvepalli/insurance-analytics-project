@@ -221,8 +221,15 @@ def _derive_providers(claims_df: pd.DataFrame) -> pd.DataFrame:
 
 def _parse_dataset_config(
     config_path: str,
+    active_dataset: str | None = None,
 ) -> tuple[str, str, str, dict, dict, dict]:
     """Read *config_path* and return ``(owner, dataset, dest_dir, files, col_maps, user_defaults)``.
+
+    Parameters
+    ----------
+    active_dataset:
+        Override the ``active_dataset`` key from the YAML file.  Useful for
+        selecting a non-default dataset at runtime without editing the config.
 
     Raises
     ------
@@ -234,7 +241,7 @@ def _parse_dataset_config(
     with open(config_path, encoding="utf-8") as fh:
         cfg = yaml.safe_load(fh)
 
-    active = cfg.get("active_dataset")
+    active = active_dataset or cfg.get("active_dataset")
     if not active:
         raise ValueError("'active_dataset' is not set in the Kaggle config.")
 
@@ -358,11 +365,21 @@ def _validate_provider_fk(result: dict[str, pd.DataFrame]) -> None:
 # ────────────────────────────────────────────────────────────────────────────
 
 
-def load_kaggle_data(config_path: str = _DEFAULT_CONFIG) -> dict[str, pd.DataFrame]:
+def load_kaggle_data(
+    config_path: str = _DEFAULT_CONFIG,
+    active_dataset: str | None = None,
+) -> dict[str, pd.DataFrame]:
     """Download (if needed) and map a Kaggle dataset to the pipeline schema.
 
     Reads ``config_path`` (default: ``config/kaggle.yaml``) to determine which
     dataset to use, where to cache it, and how to rename / default its columns.
+
+    Parameters
+    ----------
+    active_dataset:
+        Override the ``active_dataset`` key from the YAML.  Useful for
+        selecting ``insurance_claims`` instead of the default
+        ``insurance_charges`` without editing the config file.
 
     Returns
     -------
@@ -383,7 +400,9 @@ def load_kaggle_data(config_path: str = _DEFAULT_CONFIG) -> dict[str, pd.DataFra
     EnvironmentError
         If Kaggle credentials cannot be located.
     """
-    owner, dataset, dest_dir, files, col_maps, user_defaults = _parse_dataset_config(config_path)
+    owner, dataset, dest_dir, files, col_maps, user_defaults = _parse_dataset_config(
+        config_path, active_dataset
+    )
 
     if _needs_download(dest_dir, files):
         download_dataset(owner, dataset, dest_dir)

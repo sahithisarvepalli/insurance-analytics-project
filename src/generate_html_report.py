@@ -28,10 +28,12 @@ import argparse
 import html as html_mod
 import os
 import pathlib
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 import pandas as pd
+
+# Use PEP 604 union types (X | Y) instead of typing.Optional
+
 
 try:
     import plotly.graph_objects as go
@@ -195,13 +197,13 @@ _HTML_TEMPLATE = """\
 # ── Helper: read CSV safely ────────────────────────────────────────────────────
 
 
-def _read_csv(filename: str, output_dir: str) -> Optional[pd.DataFrame]:
+def _read_csv(filename: str, output_dir: str) -> pd.DataFrame | None:
     """Return a DataFrame for *filename* inside *output_dir*, or None if absent."""
     path = os.path.join(output_dir, filename)
     return pd.read_csv(path) if os.path.exists(path) else None
 
 
-def _fig_div(fig: "go.Figure") -> str:
+def _fig_div(fig: go.Figure) -> str:
     """Convert a Plotly figure to an HTML div without the surrounding page markup."""
     return fig.to_html(
         full_html=False,
@@ -213,7 +215,7 @@ def _fig_div(fig: "go.Figure") -> str:
 # ── Chart builders ─────────────────────────────────────────────────────────────
 
 
-def _kpis_content(df: Optional[pd.DataFrame]) -> str:
+def _kpis_content(df: pd.DataFrame | None) -> str:
     """Return HTML content for the KPIs tab."""
     if df is None or df.empty:
         return '<div class="no-data">No KPI data available.</div>'
@@ -244,9 +246,16 @@ def _kpis_content(df: Optional[pd.DataFrame]) -> str:
 
     region_df = df.groupby("member_region")[["claims", "paid_total"]].sum().reset_index()
 
+    # Cap to top 10 regions by paid total so charts stay readable for datasets
+    # with many distinct region values (e.g. individual hospital names).
+    _MAX_REGIONS = 10
+    top_regions = region_df.nlargest(_MAX_REGIONS, "paid_total")["member_region"].tolist()
+    region_df = region_df[region_df["member_region"].isin(top_regions)]
+
     # Normalise in_network to a canonical label so colours are consistent
     # regardless of whether the column holds bool, int, or string values.
     df = df.copy()
+    df = df[df["member_region"].isin(top_regions)]
     df["_nw_label"] = df["in_network"].map(_normalize_network)
     network_labels = sorted(df["_nw_label"].unique())
 
@@ -296,7 +305,7 @@ def _kpis_content(df: Optional[pd.DataFrame]) -> str:
     return metric_html + '<div class="card">' + _fig_div(fig) + "</div>"
 
 
-def _monthly_content(df: Optional[pd.DataFrame]) -> str:
+def _monthly_content(df: pd.DataFrame | None) -> str:
     """Return HTML content for the Monthly Trends tab."""
     if df is None or df.empty:
         return '<div class="no-data">No monthly trend data available.</div>'
@@ -316,6 +325,16 @@ def _monthly_content(df: Optional[pd.DataFrame]) -> str:
         subplot_titles=("Monthly Paid Total by Region", "Monthly Claim Count by Region"),
         vertical_spacing=0.12,
     )
+
+    df["member_region"] = df["member_region"].astype(str)
+
+    # Cap to top 10 regions by total paid to keep the chart fast regardless of
+    # how many distinct regions (e.g. hospital names) are in the dataset.
+    _MAX_REGIONS = 10
+    top_regions = (
+        df.groupby("member_region")["paid_total"].sum().nlargest(_MAX_REGIONS).index.tolist()
+    )
+    df = df[df["member_region"].isin(top_regions)]
 
     regions = sorted(df["member_region"].dropna().unique())
     palette = [_BLUE, _ORANGE, _GREEN, _RED, _GREY, _LIGHT_BLUE]
@@ -360,42 +379,90 @@ def _monthly_content(df: Optional[pd.DataFrame]) -> str:
     return '<div class="card">' + _fig_div(fig) + "</div>"
 
 
-def _loss_ratio_content(df: Optional[pd.DataFrame]) -> str:
+def _loss_ratio_content(df: pd.DataFrame | None) -> str:
     """Return HTML content for the Loss Ratio tab."""
     if df is None or df.empty:
         return '<div class="no-data">No loss ratio data available.</div>'
 
     df = df.copy()
-    df["region_network"] = df["member_region"].astype(str) + " / " + df["in_network"].astype(str)
 
+    # Aggregate to region level (collapse in_network) and cap to top 10 by paid_total.
+    # This keeps the chart readable even when there are thousands of distinct regions
+    # (e.g. individual hospital names from a healthcare admissions dataset).
+    _MAX_REGIONS = 10
+    region_agg = (
+        df.groupby("member_region", dropna=False)
+        .agg(
+            claims=("claims", "sum"),
+            billed_total=("billed_total", "sum"),
+            allowed_total=("allowed_total", "sum"),
+            paid_total=("paid_total", "sum"),
+        )
+        .reset_index()
+    )
+    top_regions = region_agg.nlargest(_MAX_REGIONS, "paid_total")["member_region"].tolist()
+    region_agg = region_agg[region_agg["member_region"].isin(top_regions)]
+
+    # Recompute loss ratio on the aggregated totals (billed may be 0 for some datasets).
+    billed_pos = region_agg["billed_total"] > 0
+    region_agg["loss_ratio_pct"] = (
+        (region_agg["paid_total"] / region_agg["billed_total"].where(billed_pos) * 100)
+        .where(billed_pos)
+        .round(2)
+    )
+
+    has_loss_ratio = region_agg["loss_ratio_pct"].notna().any()
+    # Use > 0 (not just notna) for billed/allowed: datasets that don't carry
+    # these fields default them to 0.0, so a non-zero check accurately detects
+    # whether the source data actually contains meaningful billed/allowed amounts.
+    has_billed = (region_agg["billed_total"] > 0).any()
+    has_allowed = (region_agg["allowed_total"] > 0).any()
+
+    x_labels = region_agg["member_region"].astype(str)
+
+    cols = 2 if has_loss_ratio else 1
+    subplot_titles = (
+        ("Billed / Allowed / Paid by Region (Top 10)", "Loss Ratio % by Region")
+        if has_loss_ratio
+        else ("Billed / Allowed / Paid by Region (Top 10)",)
+    )
     fig = make_subplots(
         rows=1,
-        cols=2,
-        subplot_titles=("Billed vs Allowed vs Paid", "Loss Ratio % by Region"),
+        cols=cols,
+        subplot_titles=subplot_titles,
         horizontal_spacing=0.14,
     )
 
-    x_labels = df["region_network"]
-
-    for col_name, label, color in [
-        ("billed_total", "Billed", _RED),
-        ("allowed_total", "Allowed", _ORANGE),
-        ("paid_total", "Paid", _GREEN),
-    ]:
+    # Always show Paid.  Add Billed and Allowed when the dataset carries them
+    # so the chart renders the full "billed vs allowed vs paid" comparison.
+    if has_billed:
         fig.add_trace(
-            go.Bar(name=label, x=x_labels, y=df[col_name], marker_color=color),
+            go.Bar(name="Billed", x=x_labels, y=region_agg["billed_total"], marker_color=_BLUE),
             row=1,
             col=1,
         )
+    if has_allowed:
+        fig.add_trace(
+            go.Bar(
+                name="Allowed", x=x_labels, y=region_agg["allowed_total"], marker_color=_LIGHT_BLUE
+            ),
+            row=1,
+            col=1,
+        )
+    fig.add_trace(
+        go.Bar(name="Paid", x=x_labels, y=region_agg["paid_total"], marker_color=_GREEN),
+        row=1,
+        col=1,
+    )
 
-    if "loss_ratio_pct" in df.columns:
+    if has_loss_ratio:
         fig.add_trace(
             go.Bar(
                 name="Loss Ratio %",
                 x=x_labels,
-                y=df["loss_ratio_pct"],
-                marker_color=_BLUE,
-                text=df["loss_ratio_pct"].round(1).astype(str) + "%",
+                y=region_agg["loss_ratio_pct"],
+                marker_color=_ORANGE,
+                text=region_agg["loss_ratio_pct"].round(1).astype(str) + "%",
                 textposition="outside",
             ),
             row=1,
@@ -411,13 +478,14 @@ def _loss_ratio_content(df: Optional[pd.DataFrame]) -> str:
         legend={"orientation": "h", "y": -0.25},
     )
     fig.update_yaxes(tickprefix="$", row=1, col=1)
-    fig.update_yaxes(ticksuffix="%", range=[0, 110], row=1, col=2)
+    if has_loss_ratio:
+        fig.update_yaxes(ticksuffix="%", range=[0, 110], row=1, col=2)
     fig.update_xaxes(tickangle=-30)
 
     return '<div class="card">' + _fig_div(fig) + "</div>"
 
 
-def _network_content(df: Optional[pd.DataFrame]) -> str:
+def _network_content(df: pd.DataFrame | None) -> str:
     """Return HTML content for the Network Utilization tab."""
     if df is None or df.empty:
         return '<div class="no-data">No network utilization data available.</div>'
@@ -469,7 +537,7 @@ def _network_content(df: Optional[pd.DataFrame]) -> str:
     return '<div class="card">' + _fig_div(fig) + "</div>"
 
 
-def _diagnosis_content(df: Optional[pd.DataFrame]) -> str:
+def _diagnosis_content(df: pd.DataFrame | None) -> str:
     """Return HTML content for the Diagnosis Summary tab."""
     if df is None or df.empty:
         return '<div class="no-data">No diagnosis data available.</div>'
@@ -521,7 +589,7 @@ def _diagnosis_content(df: Optional[pd.DataFrame]) -> str:
     return '<div class="card">' + _fig_div(fig) + "</div>"
 
 
-def _model_content(metrics_text: Optional[str]) -> str:
+def _model_content(metrics_text: str | None) -> str:
     """Return HTML content for the Model Metrics tab."""
     if not metrics_text:
         return '<div class="no-data">No model metrics available. Run src.model first.</div>'
@@ -616,7 +684,7 @@ def generate_dashboard(output_dir: str, client_name: str, brand_color: str = _BL
     network_df = _read_csv("network_summary.csv", output_dir)
     diagnosis_df = _read_csv("diagnosis_summary.csv", output_dir)
 
-    metrics_text: Optional[str] = None
+    metrics_text: str | None = None
     metrics_path = os.path.join(output_dir, "model_metrics.txt")
     if os.path.exists(metrics_path):
         with open(metrics_path, encoding="utf-8") as fh:
@@ -642,7 +710,7 @@ def generate_dashboard(output_dir: str, client_name: str, brand_color: str = _BL
         for tab_id, _ in _TABS
     )
 
-    timestamp = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
+    timestamp = datetime.now(tz=UTC).strftime("%Y-%m-%d %H:%M")
     plotly_js = _get_plotly_js_tag()
 
     return _HTML_TEMPLATE.format(

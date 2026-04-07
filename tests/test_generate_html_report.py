@@ -132,7 +132,7 @@ def test_dashboard_contains_all_tab_ids(tmp_path):
 
 @pytest.mark.unit
 def test_dashboard_written_to_file(tmp_path):
-    """main() must create a non-empty HTML file at the specified path."""
+    """Main() must create a non-empty HTML file at the specified path."""
     output_dir = _write_all_csvs(tmp_path)
     out_path = str(tmp_path / "dashboard.html")
     main(out_path, output_dir=output_dir, client_name="Test Client")

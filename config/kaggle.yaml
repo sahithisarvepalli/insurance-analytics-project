@@ -21,7 +21,6 @@
 active_dataset: insurance_charges
 
 datasets:
-
   # -------------------------------------------------------------------------
   # Example 1 — Medical insurance charges (single-file dataset)
   # https://www.kaggle.com/datasets/mirichoi0218/insurance
@@ -43,8 +42,8 @@ datasets:
     # Any source column NOT listed here is passed through unchanged.
     column_map:
       claims:
-        charges: paid_amount   # monetary amount → paid_amount
-        sex: gender            # 'sex' column   → 'gender'
+        charges: paid_amount # monetary amount → paid_amount
+        sex: gender # 'sex' column   → 'gender'
 
     # Static values injected for required pipeline columns absent in the
     # source file.  These are merged with schema defaults; values here win.
@@ -59,30 +58,34 @@ datasets:
         # member_id and provider_id are auto-assigned if absent
 
   # -------------------------------------------------------------------------
-  # Example 2 — Insurance claim prediction dataset
-  # https://www.kaggle.com/datasets/easonlai/sample-insurance-claim-prediction-dataset
-  # Source columns: age, sex, bmi, steps, children, smoker, region, charges,
-  #                 insuranceclaim
+  # Dataset 3 — Healthcare dataset (hospital patient admissions)
+  # https://www.kaggle.com/datasets/prasad22/healthcare-dataset
+  # Source columns: Name, Age, Gender, Blood Type, Medical Condition,
+  #   Date of Admission, Doctor, Hospital, Insurance Provider,
+  #   Billing Amount, Room Number, Admission Type, Discharge Date,
+  #   Medication, Test Results
+  # ~10,000 rows — genuinely different from insurance_charges
   # -------------------------------------------------------------------------
-  insurance_claims:
-    owner: easonlai
-    dataset: sample-insurance-claim-prediction-dataset
-    dest_dir: data/kaggle/insurance_claims
+  healthcare_admissions:
+    owner: prasad22
+    dataset: healthcare-dataset
+    dest_dir: data/kaggle/healthcare_admissions
 
     files:
-      claims: insurance_claims.csv
+      claims: healthcare_dataset.csv
 
     column_map:
       claims:
-        charges: paid_amount
-        sex: gender
-        # insuranceclaim is a binary flag (0/1) — passed through unchanged
+        "Billing Amount": paid_amount # hospital billing  → paid_amount
+        Gender: gender # Gender            → gender
+        Age: age # Age               → age
+        "Medical Condition": diagnosis_code # condition    → diagnosis_code
+        "Date of Admission": service_date # admission dt  → service_date
+        Hospital: region # hospital name     → region
 
     defaults:
       claims:
         billed_amount: 0.0
         allowed_amount: 0.0
-        place_of_service: Office
+        place_of_service: "Hospital"
         procedure_code: "99213"
-        service_date: "2023-01-01"
-        diagnosis_code: Z00

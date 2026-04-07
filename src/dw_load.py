@@ -11,7 +11,7 @@ so they always reflect the latest aggregation logic without a rigid schema const
 
 import json
 import os
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from importlib import resources
 
 import duckdb
@@ -90,9 +90,7 @@ def load_dim_date(dw: duckdb.DuckDBPyConnection) -> None:
     """Generate and load a date dimension spanning 2010-01-01 to one year from today."""
     start = date(2010, 1, 1)
     end = date.today().replace(year=date.today().year + 1)
-    days = (end - start).days + 1
-    date_list = [start + timedelta(days=i) for i in range(days)]
-    df = pd.DataFrame({"date_key": pd.to_datetime(date_list)})
+    df = pd.DataFrame({"date_key": pd.date_range(start=start, end=end, freq="D")})
     df["year"] = df["date_key"].dt.year
     df["month_num"] = df["date_key"].dt.month
     df["month_name"] = df["date_key"].dt.strftime("%B")
