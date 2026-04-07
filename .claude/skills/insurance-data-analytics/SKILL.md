@@ -42,6 +42,11 @@ src/
 config/
   kaggle.yaml       # Kaggle dataset selection and column-mapping config
   db.yaml           # Database connection config
+  clients/          # Per-client column-mapping YAML configs
+data/
+  kaggle/           # Cached Kaggle downloads (not committed)
+  clients/          # Client-supplied fixture CSVs
+  sample/           # Toy sample data for concepts / examples
 outputs/
   kpis.csv                # KPI aggregation by age band / region / network
   monthly.csv             # Monthly claims trend
@@ -51,12 +56,17 @@ outputs/
   model_metrics.txt       # Model accuracy from the logistic regression run
   insurance_summary.xlsx  # Six-sheet Excel report combining all the above
   insurance_dw.duckdb     # DuckDB analytical data warehouse (star schema)
+scripts/
+  check_quality.sh         # Comprehensive quality check script
+  generate_sample_data.py  # Generate realistic sample CSVs
+  serve_dashboard.py       # Dev server for dashboards
+examples/
+  concepts/         # 11 standalone Python learning modules
+  sas-python/       # SAS ↔ Python reference translations
 build/reports/
   dw_quality.json   # DW QA report (written by src/dw_load.py on every run)
 notebooks/
   dw_sample_queries.ipynb  # Analytic queries against insurance_dw.duckdb
-data/
-  kaggle/           # Cached Kaggle downloads (not committed)
 ```
 
 ## Key data tables

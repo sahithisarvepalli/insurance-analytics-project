@@ -8,7 +8,7 @@ Usage
        client_id: acme
        client_name: "Acme Health Plans"
        files:
-         claims: clients/data/acme/claims.csv
+         claims: data/clients/acme/claims.csv
        column_map:
          claims:
            charge_amt: paid_amount
@@ -87,7 +87,7 @@ def _load_client_role_files(
     Parameters
     ----------
     files:
-        ``{role: filepath}`` pairs, e.g. ``{"claims": "clients/data/acme/claims.csv"}``.
+        ``{role: filepath}`` pairs, e.g. ``{"claims": "data/clients/acme/claims.csv"}``.
     col_maps:
         Per-role column rename maps ``{role: {src_col: tgt_col}}``.
     user_defaults:

@@ -18,13 +18,13 @@ insurance
 └── claim       – one row per insurance claim (child of member + provider)
 ```
 
-The DDL lives in `sql/ddl_create_tables.sql` and is applied with:
+The DDL lives in `src/sql/ddl_create_tables.sql` and is applied with:
 
 ```bash
 # DATABASE_URL uses the SQLAlchemy format (postgresql+psycopg2://...).
 # psql requires a driver-free URL — strip the +psycopg2 prefix:
 PSQL_URL="${DATABASE_URL/+psycopg2/}"
-psql "$PSQL_URL" -f sql/ddl_create_tables.sql
+psql "$PSQL_URL" -f src/sql/ddl_create_tables.sql
 # or use the Makefile shortcut (handles the URL conversion for you):
 make db-init
 ```
@@ -141,7 +141,7 @@ make db-reset
 PSQL_URL="${DATABASE_URL/+psycopg2/}"
 psql "$PSQL_URL" -c "DROP SCHEMA IF EXISTS insurance CASCADE;"
 psql "$PSQL_URL" -c "CREATE SCHEMA insurance;"
-psql "$PSQL_URL" -f sql/ddl_create_tables.sql
+psql "$PSQL_URL" -f src/sql/ddl_create_tables.sql
 ```
 
 ## Load behaviour and idempotency

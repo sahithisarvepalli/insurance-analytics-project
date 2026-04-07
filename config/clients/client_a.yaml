@@ -1,17 +1,17 @@
 # Client configuration for Acme Health Plans
 # ---------------------------------------------------------------------------
 # Maps Acme Health's proprietary CSV column names to the pipeline schema.
-# This file is used by CI — it points to the 20-row committed fixture CSV
-# so no Kaggle credentials or downloaded data are required.
-# For full-scale local dashboards, pipeline-all loads from Kaggle directly
-# via config/kaggle.yaml (insurance_charges dataset).
+# CSV files are supplied at runtime (not committed to the repo).
+# Usage:
+#   python -m src.load --client-config config/clients/client_a.yaml
+# The 'files.claims' path should point to the client-supplied CSV on disk.
 # ---------------------------------------------------------------------------
 
 client_id: client_a
 client_name: "Acme Health Plans"
 
 files:
-  claims: clients/data/client_a/claims.csv
+  claims: data/clients/client_a/claims.csv
 
 column_map:
   claims:

@@ -92,10 +92,11 @@ jobs:
         uses: ./.github/actions/setup-python-env
 
       # ── Load client data ────────────────────────────────────────────────────
-      - name: Load client data into PostgreSQL
-        run: |
-          python -m src.load \
-            --client-config config/clients/${{ matrix.client }}.yaml
+      # Seed the DB with shared test fixtures (no CSV files or Kaggle
+      # credentials required).  The same 20-row dataset is used for every
+      # client so the pipeline logic is exercised identically.
+      - name: Seed test database
+        run: python .github/scripts/seed_test_db.py
 
       # ── ETL pipeline ────────────────────────────────────────────────────────
       - name: Run ETL transform

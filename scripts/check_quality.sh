@@ -54,43 +54,43 @@ echo ""
 
 # 1. Format checking
 status "Checking code formatting..."
-if black --check --diff src tests concepts >/dev/null 2>&1; then
+if black --check --diff src tests examples/concepts >/dev/null 2>&1; then
     success "Black formatting OK"
 else
     error "Code needs formatting. Run: make format"
-    black --check --diff src tests concepts || true
+    black --check --diff src tests examples/concepts || true
 fi
 
-if isort --check-only --diff src tests concepts >/dev/null 2>&1; then
+if isort --check-only --diff src tests examples/concepts >/dev/null 2>&1; then
     success "Import sorting OK"
 else
     error "Imports need sorting. Run: make format"
-    isort --check-only --diff src tests concepts || true
+    isort --check-only --diff src tests examples/concepts || true
 fi
 
 echo ""
 
 # 2. Linting
 status "Running linters..."
-if flake8 src tests concepts >/dev/null 2>&1; then
+if flake8 src tests examples/concepts >/dev/null 2>&1; then
     success "Flake8 linting OK"
 else
     error "Flake8 issues found"
-    flake8 src tests concepts || true
+    flake8 src tests examples/concepts || true
 fi
 
-if ruff check src tests concepts >/dev/null 2>&1; then
+if ruff check src tests examples/concepts >/dev/null 2>&1; then
     success "Ruff linting OK"
 else
     warning "Ruff issues found (may be auto-fixable)"
-    ruff check src tests concepts || true
+    ruff check src tests examples/concepts || true
 fi
 
-if pylint src tests concepts >/dev/null 2>&1; then
+if pylint src tests examples/concepts >/dev/null 2>&1; then
     success "Pylint OK"
 else
     warning "Pylint issues found"
-    pylint src tests concepts || true
+    pylint src tests examples/concepts || true
 fi
 
 echo ""

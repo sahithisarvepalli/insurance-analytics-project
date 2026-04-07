@@ -1,17 +1,17 @@
 # Client configuration for MedTrust Group
 # ---------------------------------------------------------------------------
-# CI / test data: 20-row CSV with MedTrust's column schema.
-# This file is used by CI — it points to the 20-row committed fixture CSV
-# so no Kaggle credentials or downloaded data are required.
-# For full-scale local dashboards, pipeline-all loads from Kaggle directly
-# via config/kaggle.yaml (healthcare_admissions dataset).
+# Maps MedTrust's column schema to the pipeline schema.
+# CSV files are supplied at runtime (not committed to the repo).
+# Usage:
+#   python -m src.load --client-config config/clients/client_b.yaml
+# The 'files.claims' path should point to the client-supplied CSV on disk.
 # ---------------------------------------------------------------------------
 
 client_id: client_b
 client_name: "MedTrust Group"
 
 files:
-  claims: clients/data/client_b/claims.csv
+  claims: data/clients/client_b/claims.csv
 
 column_map:
   claims:

@@ -32,11 +32,13 @@ ENV/
 outputs/
 *.xlsx
 *.csv
-!clients/data/**/*.csv
 config/local*
 
 # OS
 .DS_Store
+
+# Build artifacts
+htmlcov/
 
 # Airflow runtime logs
 airflow/logs/

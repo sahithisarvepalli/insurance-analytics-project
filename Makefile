@@ -62,17 +62,17 @@ test:
 
 lint:
 	@echo "🔍 Running linters..."
-	flake8 src tests concepts
-	ruff check src tests concepts
-	pylint src tests concepts || true
+	flake8 src tests examples/concepts
+	ruff check src tests examples/concepts
+	pylint src tests examples/concepts || true
 	@echo "✅ Linting completed"
 
 format:
 	@echo "🪄 Formatting code..."
-	isort src tests concepts --profile black
-	black src tests concepts --line-length=100
-	ruff format src tests concepts
-	find src tests concepts -name "*.py" -exec docformatter --in-place --wrap-summaries=100 --wrap-descriptions=100 {} \;
+	isort src tests examples/concepts --profile black
+	black src tests examples/concepts --line-length=100
+	ruff format src tests examples/concepts
+	find src tests examples/concepts -name "*.py" -exec docformatter --in-place --wrap-summaries=100 --wrap-descriptions=100 {} \;
 	@echo "✅ Code formatted"
 
 check-types:
@@ -106,7 +106,7 @@ complexity:
 docs:
 	@echo "📚 Checking documentation..."
 	pydocstyle src
-	docformatter --check --wrap-summaries=100 --wrap-descriptions=100 src tests concepts
+	docformatter --check --wrap-summaries=100 --wrap-descriptions=100 src tests examples/concepts
 	@echo "✅ Documentation checks completed"
 
 pre-commit:
@@ -116,7 +116,7 @@ pre-commit:
 
 quality-check:
 	@echo "🛡️  Running comprehensive quality check..."
-	./check-quality.sh
+	./scripts/check_quality.sh
 	@echo "✅ Quality check completed"
 
 check: lint check-types test quality
