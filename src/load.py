@@ -139,7 +139,11 @@ def _insert_dataframes(
         "procedure_code": 8,
     }
     for col, max_len in _code_limits.items():
-        for df_name, df in (("claims", claims_df), ("members", members_df), ("providers", providers_df)):
+        for df_name, df in (
+            ("claims", claims_df),
+            ("members", members_df),
+            ("providers", providers_df),
+        ):
             if col in df.columns:
                 _nonnull = df[col].dropna()
                 _too_long = _nonnull[_nonnull.astype(str).str.len() > max_len]
