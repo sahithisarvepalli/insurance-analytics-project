@@ -412,7 +412,9 @@ def _loss_ratio_content(df: pd.DataFrame | None) -> str:
     )
 
     has_loss_ratio = region_agg["loss_ratio_pct"].notna().any()
-    # Billed/allowed are non-zero only when the source dataset carries those fields.
+    # Use > 0 (not just notna) for billed/allowed: datasets that don't carry
+    # these fields default them to 0.0, so a non-zero check accurately detects
+    # whether the source data actually contains meaningful billed/allowed amounts.
     has_billed = (region_agg["billed_total"] > 0).any()
     has_allowed = (region_agg["allowed_total"] > 0).any()
 
