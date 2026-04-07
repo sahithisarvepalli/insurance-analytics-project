@@ -83,7 +83,9 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: .devcontainer
+          # Use repo root as build context so the Dockerfile can COPY
+          # requirements.txt and pyproject.toml from the project root.
+          context: .
           file: .devcontainer/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
