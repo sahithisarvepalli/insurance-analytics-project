@@ -24,6 +24,7 @@ on:
 
 permissions:
   contents: read # allow checkout of source code
+  packages: read # allow pulling the GHCR devcontainer image in container: jobs
   pull-requests: write # allow SonarCloud & Copilot agent to post PR comments/suggestions
   security-events: write # allow uploading SARIF / security scan results
   pages: write # required by client-analytics.yml publish-dashboard job (called via workflow_call)
@@ -34,8 +35,12 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     # Use the shared GHCR image so the linting environment matches dev container.
+    # The tag is chosen to match what build-devcontainer.yml published for this
+    # exact event: pr-<N> for pull requests, :latest for the default branch, or
+    # sha-<hash> for other branch pushes.  This ensures the PR's own Dockerfile
+    # changes are tested against the newly-built image, not a stale :latest.
     container:
-      image: ghcr.io/${{ github.repository_owner }}/insurance-analytics-devcontainer:latest
+      image: ghcr.io/${{ github.repository_owner }}/insurance-analytics-devcontainer:${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && 'latest' || format('sha-{0}', github.sha) }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -99,8 +104,10 @@ jobs:
     # Run inside the shared devcontainer image.  When a job uses both
     # `container:` and `services:`, the service is reachable at the service
     # label hostname ("postgres"), not "localhost".
+    # The tag is chosen to match what build-devcontainer.yml published for this
+    # exact event (see lint job comment above).
     container:
-      image: ghcr.io/${{ github.repository_owner }}/insurance-analytics-devcontainer:latest
+      image: ghcr.io/${{ github.repository_owner }}/insurance-analytics-devcontainer:${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && 'latest' || format('sha-{0}', github.sha) }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

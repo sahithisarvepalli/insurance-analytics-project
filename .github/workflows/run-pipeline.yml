@@ -47,11 +47,17 @@ on:
 jobs:
   pipeline:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read  # allow checkout of source code
+      packages: read  # allow pulling the GHCR devcontainer image
 
     # Run every step inside the shared devcontainer image from GHCR so the CI
     # environment is identical to the local dev container.
+    # The tag is chosen to match what build-devcontainer.yml published for this
+    # exact event: pr-<N> for pull requests, :latest for the default branch, or
+    # sha-<hash> for other branch pushes.
     container:
-      image: ghcr.io/${{ github.repository_owner }}/insurance-analytics-devcontainer:latest
+      image: ghcr.io/${{ github.repository_owner }}/insurance-analytics-devcontainer:${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && 'latest' || format('sha-{0}', github.sha) }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

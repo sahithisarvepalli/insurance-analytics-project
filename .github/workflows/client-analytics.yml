@@ -73,6 +73,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       contents: read
+      packages: read  # allow pulling the GHCR devcontainer image
 
     strategy:
       fail-fast: false # one client failure should not cancel the other

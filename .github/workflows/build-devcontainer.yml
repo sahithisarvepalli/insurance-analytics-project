@@ -12,10 +12,12 @@ name: Build & Push Dev Container Image
 #   :buildcache     – registry-side layer cache (internal, never pulled directly)
 #
 # Lifecycle:
-#   PR opens/updates  → builds :pr-<N> and :sha-<hash> so the changed image is
-#                        immediately available to any CI jobs on that PR.
-#   PR merges to main → builds :latest and :sha-<hash> (the stable, production tag).
-#   workflow_dispatch → manual rebuild on any branch on demand.
+#   PR opens/updates       → builds :pr-<N> and :sha-<hash> so the changed image is
+#                             immediately available to CI jobs on that PR.
+#   PR merges to main      → builds :latest and :sha-<hash> (the stable, production tag).
+#   workflow_dispatch on
+#     default branch       → builds :latest and :sha-<hash> (intentional bootstrap/hotfix).
+#     other branch         → builds :sha-<hash> only (no :latest overwrite).
 
 on:
   push:
@@ -33,6 +35,7 @@ on:
       - ".devcontainer/setup.sh"
       - "requirements.txt"
       - "pyproject.toml"
+      - ".github/workflows/build-devcontainer.yml"
   workflow_dispatch: # manual trigger to force a rebuild on demand
 
 permissions:
@@ -59,9 +62,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ── Determine image tags & OCI labels ───────────────────────────────────
-      # On a push to main     → :latest + :sha-<hash>
-      # On a pull_request     → :pr-<number> + :sha-<hash>  (no :latest overwrite)
-      # On workflow_dispatch  → :latest + :sha-<hash>  (intentional bootstrap/hotfix)
+      # On a push to main              → :latest + :sha-<hash>
+      # On a pull_request              → :pr-<number> + :sha-<hash>  (no :latest overwrite)
+      # On workflow_dispatch on main   → :latest + :sha-<hash>  (intentional bootstrap/hotfix)
+      # On workflow_dispatch on other  → :sha-<hash> only
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@v5
