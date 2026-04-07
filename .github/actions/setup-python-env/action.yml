@@ -34,6 +34,11 @@ runs:
 
     - name: Install dependencies
       shell: bash
+      # PIP_NO_CACHE_DIR   – avoids the '/github/home/.cache/pip' permission warning
+      # --root-user-action – suppresses the "running as root" advisory
+      env:
+        PIP_NO_CACHE_DIR: "1"
+        PIP_ROOT_USER_ACTION: ignore
       run: |
         python3 -m pip install --upgrade pip --quiet
         pip install -r requirements.txt --quiet
