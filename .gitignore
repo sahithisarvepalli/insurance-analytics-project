@@ -28,6 +28,9 @@ ENV/
 .vscode/
 .idea/
 
+# Dev container local env (contains GITHUB_REPOSITORY_OWNER; not committed)
+.devcontainer/.env
+
 # Local data & outputs
 outputs/
 *.xlsx
