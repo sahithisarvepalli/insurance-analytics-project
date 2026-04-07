@@ -50,7 +50,7 @@ def load_from_kaggle(
         Path to the Kaggle YAML configuration file.
     active_dataset:
         Override the ``active_dataset`` key in the YAML, e.g.
-        ``"insurance_claims"`` to select the second dataset without editing
+        ``"healthcare_admissions"`` to select the second dataset without editing
         the config file.
     """
     from .kaggle_ingest import load_kaggle_data  # noqa: PLC0415
@@ -131,20 +131,38 @@ def _insert_dataframes(
     # so Postgres auto-generates valid integer PKs.
     claims_df = claims_df.drop(columns=["claim_id"], errors="ignore")
 
-    # Enforce VARCHAR length limits defined in the DDL so external datasets with
-    # longer string values (e.g. "Hypertension" for diagnosis_code) don't fail.
-    _varchar_limits = {
+    # Code-bearing columns must not be silently truncated — if source values
+    # exceed the canonical DDL width the mapping or DDL must be corrected
+    # explicitly.  Raise early so data corruption is caught before insert.
+    _code_limits = {
         "diagnosis_code": 8,
         "procedure_code": 8,
+    }
+    for col, max_len in _code_limits.items():
+        for df_name, df in (("claims", claims_df), ("members", members_df), ("providers", providers_df)):
+            if col in df.columns:
+                _nonnull = df[col].dropna()
+                _too_long = _nonnull[_nonnull.astype(str).str.len() > max_len]
+                if not _too_long.empty:
+                    raise ValueError(
+                        f"Column '{col}' in {df_name} contains values longer than "
+                        f"{max_len} characters.  Refusing to truncate code-bearing data; "
+                        f"widen the canonical DDL or correct the source mapping.  "
+                        f"Example value: {_too_long.iloc[0]!r}"
+                    )
+
+    # Truncate descriptive (non-code) fields to DDL VARCHAR limits.
+    # Use pandas nullable StringDtype so NAs are preserved as NA (not 'nan').
+    _varchar_limits = {
         "place_of_service": 20,
         "gender": 10,
         "region": 50,
+        "specialty": 80,
     }
     for col, max_len in _varchar_limits.items():
-        if col in claims_df.columns:
-            claims_df[col] = claims_df[col].astype(str).str[:max_len]
-        if col in members_df.columns:
-            members_df[col] = members_df[col].astype(str).str[:max_len]
+        for df in (claims_df, members_df, providers_df):
+            if col in df.columns:
+                df[col] = df[col].astype(pd.StringDtype()).str[:max_len]
 
     members_df.to_sql("member", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
     providers_df.to_sql("provider", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
@@ -190,7 +208,7 @@ if __name__ == "__main__":
     ap.add_argument(
         "--kaggle-dataset",
         default=None,
-        help="Override active_dataset in the Kaggle config (e.g. 'insurance_claims').",
+        help="Override active_dataset in the Kaggle config (e.g. 'healthcare_admissions').",
     )
     ap.add_argument(
         "--client-config",

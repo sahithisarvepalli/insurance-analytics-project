@@ -179,11 +179,8 @@ xdg-open outputs/dashboard.html
 If your data lives in `config/clients/` (e.g. `client_a.yaml`):
 
 ```bash
-# Load client data
-python -m src.load --client-config config/clients/client_a.yaml
-
-# Run the full pipeline for that client
-make pipeline-local CLIENT=client_a
+# Run the full pipeline for that client (writes to outputs/client_a/)
+make pipeline-client CLIENT_CONFIG=config/clients/client_a.yaml CLIENT_ID=client_a CLIENT_NAME="Acme Health Plans"
 
 # The dashboard is written to:
 #   outputs/client_a/dashboard.html

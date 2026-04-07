@@ -78,11 +78,6 @@ _PROCEDURE_CODES = [
 _PLACES = ["Office", "Hospital", "Outpatient", "Urgent Care", "Emergency"]
 
 
-def _random_date(rng: np.random.Generator, start: date, end: date) -> np.ndarray:
-    delta = (end - start).days
-    offsets = rng.integers(0, delta, size=1)[0]
-    return start + timedelta(days=int(offsets))
-
 
 def generate_members(n: int, rng: np.random.Generator) -> pd.DataFrame:
     """Return a members DataFrame with proper schema matching the pipeline DDL."""

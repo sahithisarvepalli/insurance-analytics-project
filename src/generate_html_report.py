@@ -412,13 +412,17 @@ def _loss_ratio_content(df: pd.DataFrame | None) -> str:
     )
 
     has_loss_ratio = region_agg["loss_ratio_pct"].notna().any()
+    # Billed/allowed are non-zero only when the source dataset carries those fields.
+    has_billed = (region_agg["billed_total"] > 0).any()
+    has_allowed = (region_agg["allowed_total"] > 0).any()
+
     x_labels = region_agg["member_region"].astype(str)
 
     cols = 2 if has_loss_ratio else 1
     subplot_titles = (
-        ("Paid Total by Region (Top 10)", "Loss Ratio % by Region")
+        ("Billed / Allowed / Paid by Region (Top 10)", "Loss Ratio % by Region")
         if has_loss_ratio
-        else ("Paid Total by Region (Top 10)",)
+        else ("Billed / Allowed / Paid by Region (Top 10)",)
     )
     fig = make_subplots(
         rows=1,
@@ -427,6 +431,22 @@ def _loss_ratio_content(df: pd.DataFrame | None) -> str:
         horizontal_spacing=0.14,
     )
 
+    # Always show Paid.  Add Billed and Allowed when the dataset carries them
+    # so the chart renders the full "billed vs allowed vs paid" comparison.
+    if has_billed:
+        fig.add_trace(
+            go.Bar(name="Billed", x=x_labels, y=region_agg["billed_total"], marker_color=_BLUE),
+            row=1,
+            col=1,
+        )
+    if has_allowed:
+        fig.add_trace(
+            go.Bar(
+                name="Allowed", x=x_labels, y=region_agg["allowed_total"], marker_color=_LIGHT_BLUE
+            ),
+            row=1,
+            col=1,
+        )
     fig.add_trace(
         go.Bar(name="Paid", x=x_labels, y=region_agg["paid_total"], marker_color=_GREEN),
         row=1,
@@ -439,7 +459,7 @@ def _loss_ratio_content(df: pd.DataFrame | None) -> str:
                 name="Loss Ratio %",
                 x=x_labels,
                 y=region_agg["loss_ratio_pct"],
-                marker_color=_BLUE,
+                marker_color=_ORANGE,
                 text=region_agg["loss_ratio_pct"].round(1).astype(str) + "%",
                 textposition="outside",
             ),
