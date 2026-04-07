@@ -18,20 +18,20 @@ repos:
       - id: black
         language_version: python3
         args: [--line-length=100]
-        exclude: ^(sas-python-examples|concepts)/
+        exclude: ^examples/
 
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
       - id: isort
         args: [--profile=black, --line-length=100]
-        exclude: ^(sas-python-examples|concepts)/
+        exclude: ^examples/
 
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
       - id: flake8
-        exclude: ^(sas-python-examples|concepts)/
+        exclude: ^examples/
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
@@ -47,7 +47,7 @@ repos:
             --ignore-missing-imports,
             --no-error-summary,
           ]
-        exclude: ^(sas-python-examples|concepts|src|tests|airflow)/
+        exclude: ^(examples|src|tests|airflow)/
 
   - repo: https://github.com/pycqa/bandit
     rev: 1.7.6
@@ -61,21 +61,21 @@ repos:
     hooks:
       - id: pylint
         args: [--rcfile=pyproject.toml]
-        exclude: ^(sas-python-examples|concepts|src|tests|airflow|\.github)/
+        exclude: ^(examples|src|tests|airflow|\.github)/
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.13
     hooks:
       - id: ruff
         args: [--fix, --ignore=E402]
-        exclude: ^(sas-python-examples|concepts|airflow)/
+        exclude: ^(examples|airflow)/
       - id: ruff-format
         args: [--line-length=100]
-        exclude: ^(sas-python-examples|concepts|airflow)/
+        exclude: ^(examples|airflow)/
 
   - repo: https://github.com/pycqa/docformatter
     rev: v1.7.5
     hooks:
       - id: docformatter
         args: [--in-place, --wrap-summaries=100, --wrap-descriptions=100]
-        exclude: ^(sas-python-examples|concepts)/
+        exclude: ^examples/

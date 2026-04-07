@@ -12,8 +12,8 @@ exclude =
     .mypy_cache,
     .pytest_cache,
     notebooks,
-    concepts,
-    sas-python-examples
+    examples/concepts,
+    examples/sas-python
 per-file-ignores =
     __init__.py:F401
     tests/*:S101,E402

@@ -64,7 +64,7 @@ success "Schema created/verified"
 
 # Step 3: Create tables
 status "🗄️  Creating tables..."
-DDL_OUTPUT=$(psql "$DATABASE_URL" -f sql/ddl_create_tables.sql 2>&1)
+DDL_OUTPUT=$(psql "$DATABASE_URL" -f src/sql/ddl_create_tables.sql 2>&1)
 DDL_EXIT=$?
 
 if [ $DDL_EXIT -eq 0 ]; then

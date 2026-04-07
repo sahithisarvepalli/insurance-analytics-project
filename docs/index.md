@@ -33,17 +33,17 @@ docs/
 
 ## 🚦 Where Should I Start?
 
-| I want to…                                | Go to                                              |
-| ----------------------------------------- | -------------------------------------------------- |
-| 🏁 Get it running fast                    | [Setup Guide](setup.md) → Option A (Dev Container) |
-| 🔍 Understand how it works                | [Architecture](architecture.md)                    |
-| 👁️ See it as a diagram                    | [Flow Diagram](flow_diagram.md)                    |
-| 📊 View the interactive dashboard locally | [Dashboard Guide](dashboard.md)                    |
-| ⏰ Run it on a schedule                   | [Orchestration](orchestration.md)                  |
-| 🧹 Learn about code quality               | [Quality Guide](quality_guide.md)                  |
-| 🐙 Fix weird Git issues                   | [Git Tips](git.md)                                 |
-| 🐍 Learn the Python concepts              | [concepts/README.md](../concepts/README.md)        |
-| 📓 Explore in Jupyter                     | [notebooks/README.md](../notebooks/README.md)      |
+| I want to…                                | Go to                                                         |
+| ----------------------------------------- | ------------------------------------------------------------- |
+| 🏁 Get it running fast                    | [Setup Guide](setup.md) → Option A (Dev Container)            |
+| 🔍 Understand how it works                | [Architecture](architecture.md)                               |
+| 👁️ See it as a diagram                    | [Flow Diagram](flow_diagram.md)                               |
+| 📊 View the interactive dashboard locally | [Dashboard Guide](dashboard.md)                               |
+| ⏰ Run it on a schedule                   | [Orchestration](orchestration.md)                             |
+| 🧹 Learn about code quality               | [Quality Guide](quality_guide.md)                             |
+| 🐙 Fix weird Git issues                   | [Git Tips](git.md)                                            |
+| 🐍 Learn the Python concepts              | [examples/concepts/README.md](../examples/concepts/README.md) |
+| 📓 Explore in Jupyter                     | [notebooks/README.md](../notebooks/README.md)                 |
 
 ---
 

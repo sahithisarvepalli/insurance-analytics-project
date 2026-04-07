@@ -20,8 +20,8 @@ This folder contains small, standalone Python scripts to help you understand and
 
 1. **Run each script individually** to see it in action:
    ```bash
-   python concepts/01_argparse_basics.py --name "YourName" --age 25
-   python concepts/02_csv_read_write.py
+   python examples/concepts/01_argparse_basics.py --name "YourName" --age 25
+   python examples/concepts/02_csv_read_write.py
    # etc.
    ```
 
@@ -36,69 +36,69 @@ This folder contains small, standalone Python scripts to help you understand and
 ### 1. 01_argparse_basics.py
 **Purpose**: Learn how to parse command-line arguments in Python scripts.
 **How to Run**:
-- Basic: `python concepts/01_argparse_basics.py`
-- With args: `python concepts/01_argparse_basics.py --name Alice --age 30`
-- Help: `python concepts/01_argparse_basics.py --help`
+- Basic: `python examples/concepts/01_argparse_basics.py`
+- With args: `python examples/concepts/01_argparse_basics.py --name Alice --age 30`
+- Help: `python examples/concepts/01_argparse_basics.py --help`
 **What It Does**: Prints a greeting using provided name/age or defaults.
 **Experiment**: Add a new argument like `--city` and modify the print statement.
 
 ### 2. 02_csv_read_write.py
 **Purpose**: Practice reading from and writing to CSV files using pandas.
-**How to Run**: `python concepts/02_csv_read_write.py`
+**How to Run**: `python examples/concepts/02_csv_read_write.py`
 **What It Does**: Creates sample data, writes to CSV, reads it back, and prints.
 **Experiment**: Change the data (add columns), filter rows when reading.
 
 ### 3. 03_db_connection.py
 **Purpose**: Understand database connections and basic queries with SQLAlchemy.
-**How to Run**: `python concepts/03_db_connection.py` (assumes DB is running).
+**How to Run**: `python examples/concepts/03_db_connection.py` (assumes DB is running).
 **What It Does**: Connects to DB, creates a table, inserts data, queries it.
 **Experiment**: Add more columns to the table or try a different query.
 
 ### 4. 04_pandas_transform.py
 **Purpose**: Learn data transformation and aggregation with pandas.
-**How to Run**: `python concepts/04_pandas_transform.py`
+**How to Run**: `python examples/concepts/04_pandas_transform.py`
 **What It Does**: Creates sample data, groups by categories, computes sums/means.
 **Experiment**: Add more aggregations or filter the data before grouping.
 
 ### 5. 05_synthetic_data.py
 **Purpose**: Generate synthetic data using numpy's random functions.
-**How to Run**: `python concepts/05_synthetic_data.py`
+**How to Run**: `python examples/concepts/05_synthetic_data.py`
 **What It Does**: Generates random ages, amounts, and categories; prints stats.
 **Experiment**: Change distributions (e.g., use normal instead of uniform).
 
 ### 6. 06_ml_basics.py
 **Purpose**: Introduction to binary classification with logistic regression using scikit-learn.
-**How to Run**: `python concepts/06_ml_basics.py`
+**How to Run**: `python examples/concepts/06_ml_basics.py`
 **What It Does**: Generates synthetic insurance-like data, labels high-cost members (top 10th percentile), trains a logistic regression classifier with preprocessing, and prints accuracy.
 **Experiment**: Try a different model (e.g., RandomForest) or add more features.
 
 ### 7. 07_logging.py
 **Purpose**: Use Python's logging module for debugging and info messages.
-**How to Run**: `python concepts/07_logging.py`
+**How to Run**: `python examples/concepts/07_logging.py`
 **What It Does**: Logs messages at different levels (info, warning, error).
 **Experiment**: Add more log statements or change log levels.
 
 ### 8. 08_config_loading.py
 **Purpose**: Load configuration from YAML files with env var expansion.
-**How to Run**: `python concepts/08_config_loading.py`
+**How to Run**: `python examples/concepts/08_config_loading.py`
 **What It Does**: Reads config.yaml, expands vars, prints the config.
 **Experiment**: Set an env var (e.g., `export DB_HOST=localhost`) and see it expand.
 
 ### 9. 09_excel_report.py
 **Purpose**: Create Excel reports with multiple sheets using pandas.
-**How to Run**: `python concepts/09_excel_report.py`
+**How to Run**: `python examples/concepts/09_excel_report.py`
 **What It Does**: Writes sample insurance KPI, monthly trend, and model metrics data to an Excel workbook — mirroring the structure of `src/report.py`.
 **Experiment**: Add more sheets (e.g., LossRatio, NetworkUtilization) or format cells with openpyxl.
 
 ### 10. 10_testing_basics.py
 **Purpose**: Write and run unit tests with pytest.
-**How to Run**: `python -m pytest concepts/10_testing_basics.py -v`
+**How to Run**: `python -m pytest examples/concepts/10_testing_basics.py -v`
 **What It Does**: Tests a simple function for correctness.
 **Experiment**: Add more test cases or test a different function.
 
 ### 11. 11_date_handling.py
 **Purpose**: Work with dates in pandas and datetime.
-**How to Run**: `python concepts/11_date_handling.py`
+**How to Run**: `python examples/concepts/11_date_handling.py`
 **What It Does**: Parses dates, calculates ages, formats output.
 **Experiment**: Add date arithmetic or handle different date formats.
 

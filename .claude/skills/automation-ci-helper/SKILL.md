@@ -141,14 +141,14 @@ pip install pre-commit
 pre-commit install   # installs the git hook
 ```
 
-## Quality gate script (`check-quality.sh`)
+## Quality gate script (`scripts/check_quality.sh`)
 
 A shell script that aggregates multiple quality checks in one pass:
 
 ```bash
 make quality-check
 # or directly:
-./check-quality.sh
+./scripts/check_quality.sh
 ```
 
 Run this locally before opening a pull request to catch issues that CI will also catch.

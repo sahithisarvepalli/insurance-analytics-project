@@ -114,7 +114,7 @@ warn_unreachable = true
 strict_equality = true
 exclude = [
     "notebooks/",
-    "concepts/",
+    "examples/concepts/",
     "tests/",
     "airflow/"
 ]
@@ -141,7 +141,7 @@ good-names = ["df", "X", "y", "i", "j", "k", "ex", "Run", "_"]
 include-naming-hint = true
 
 [tool.bandit]
-exclude_dirs = ["tests", "notebooks", "concepts"]
+exclude_dirs = ["tests", "notebooks", "examples/concepts"]
 skips = ["B101", "B601"]
 
 [tool.ruff.lint]
@@ -170,7 +170,7 @@ exclude = [
     ".mypy_cache",
     ".pytest_cache",
     "notebooks",
-    "concepts"
+    "examples/concepts"
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -178,12 +178,12 @@ exclude = [
 "tests/*" = ["S101"]
 
 [tool.radon]
-exclude = "tests/*,notebooks/*,concepts/*"
+exclude = "tests/*,notebooks/*,examples/concepts/*"
 cc_max = 10
 mi_min = "A"
 
 [tool.xenon]
-exclude = "tests/*,notebooks/*,concepts/*"
+exclude = "tests/*,notebooks/*,examples/concepts/*"
 max_average = "A"
 max_modules = "A"
 max_absolute = "B"
@@ -208,7 +208,7 @@ omit = [
     "*/test_*.py",
     "*/conftest.py",
     "notebooks/*",
-    "concepts/*"
+    "examples/concepts/*"
 ]
 data_file = "build/reports/.coverage"
 

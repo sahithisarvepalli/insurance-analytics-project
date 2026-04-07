@@ -11,7 +11,7 @@ client_id: client_a
 client_name: "Acme Health Plans"
 
 files:
-  claims: clients/data/client_a/claims.csv
+  claims: data/clients/client_a/claims.csv
 
 column_map:
   claims:
