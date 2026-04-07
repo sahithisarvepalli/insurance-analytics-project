@@ -1,6 +1,11 @@
 version: '3.8'
 services:
   app:
+    # Use the pre-built image from GHCR when available (set GITHUB_REPOSITORY_OWNER
+    # in .devcontainer/.env for local dev, or rely on the Codespaces default).
+    # Keeping `build:` lets the devcontainer fall back to a local build when the
+    # GHCR image has not been pulled yet — run `docker compose pull app` to fetch it.
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/insurance-analytics-devcontainer:latest
     build:
       context: .
       dockerfile: Dockerfile

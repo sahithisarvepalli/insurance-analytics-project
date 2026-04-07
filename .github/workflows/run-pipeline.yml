@@ -48,6 +48,14 @@ jobs:
   pipeline:
     runs-on: ubuntu-latest
 
+    # Run every step inside the shared devcontainer image from GHCR so the CI
+    # environment is identical to the local dev container.
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/insurance-analytics-devcontainer:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     services:
       postgres:
         image: postgres:15
@@ -64,7 +72,7 @@ jobs:
           --health-retries=5
 
     env:
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/insurdb
       PYTHONPATH: ${{ github.workspace }}
       KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
       KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
