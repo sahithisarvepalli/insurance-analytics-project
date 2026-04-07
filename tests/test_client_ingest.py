@@ -8,11 +8,7 @@ import pandas as pd
 import pytest
 import yaml
 
-from src.client_ingest import (
-    _load_client_role_files,
-    _parse_client_config,
-    load_client_data,
-)
+from src.client_ingest import _load_client_role_files, _parse_client_config, load_client_data
 
 # ────────────────────────────────────────────────────────────────────────────
 # Helpers
