@@ -34,6 +34,7 @@ jupyter notebook --ip=0.0.0.0 --port=8889 --no-browser --allow-root
 ```
 notebooks/
 ├── myfirst.ipynb              # Guided intro: connect, explore claims data, troubleshoot
+├── dw_sample_queries.ipynb    # Analytical SQL queries against insurance_dw.duckdb (star schema)
 └── README.md                  # This file
 ```
 
@@ -72,6 +73,8 @@ df.head()
 
 > **Tip:** The database must be seeded first. Run `make kaggle-load` (requires Kaggle credentials)
 > or `make db-init` followed by `make kaggle-load` if starting fresh.
+> After loading, run `make pipeline-local` to populate the DuckDB warehouse that
+> `dw_sample_queries.ipynb` queries.
 
 ## Tips
 
@@ -101,18 +104,21 @@ df.head()
 ## Troubleshooting
 
 **Issue**: Jupyter kernel not found
+
 ```bash
 python -m ipykernel install --user --name=insurance --display-name="Insurance Analytics"
 jupyter notebook --generate-config
 ```
 
 **Issue**: Port already in use
+
 ```bash
 # Use different port
 jupyter lab --port=8890
 ```
 
 **Issue**: Can't connect to database
+
 ```bash
 # Check DATABASE_URL environment variable
 echo $DATABASE_URL

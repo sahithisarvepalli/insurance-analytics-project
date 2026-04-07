@@ -106,7 +106,8 @@ _VALIDATORS = {
 def _load_outputs(
     output_dir: str = "outputs",
 ) -> tuple[dict[str, pd.DataFrame | None], str | None]:
-    """Read all pipeline output files from *output_dir*; return (dataframes_by_key, metrics_text)."""
+    """Read all pipeline output files from *output_dir*; return (dataframes_by_key,
+    metrics_text)."""
     outputs: dict[str, pd.DataFrame | None] = {
         "kpis": _read_output("kpis.csv", output_dir),
         "monthly": _read_output("monthly.csv", output_dir),

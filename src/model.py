@@ -25,13 +25,14 @@ def run_model(output_dir: str = "outputs"):
         per-client results.
     """
     eng = get_engine()
-    q = (
-        "SELECT c.member_id, m.dob, m.region AS member_region, p.in_network, "
-        "SUM(c.paid_amount) AS paid_total FROM insurance.claim c "
-        "JOIN insurance.member m ON c.member_id = m.member_id "
-        "JOIN insurance.provider p ON c.provider_id = p.provider_id "
-        "GROUP BY c.member_id, m.dob, m.region, p.in_network"
-    )
+    q = """
+        SELECT c.member_id, m.dob, m.region AS member_region, p.in_network,
+               SUM(c.paid_amount) AS paid_total
+        FROM insurance.claim c
+        JOIN insurance.member m ON c.member_id = m.member_id
+        JOIN insurance.provider p ON c.provider_id = p.provider_id
+        GROUP BY c.member_id, m.dob, m.region, p.in_network
+    """
     df = pd.read_sql(q, eng, parse_dates=["dob"])
     today = pd.Timestamp.now().normalize()
     df["age"] = (today - df["dob"]).dt.days // 365

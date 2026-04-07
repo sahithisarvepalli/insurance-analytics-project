@@ -281,7 +281,7 @@ def test_report_raises_on_invalid_kpis_columns(tmp_path, monkeypatch):
 
 @pytest.mark.unit
 def test_report_uses_custom_output_dir(tmp_path):
-    """main() must read CSVs from output_dir without requiring chdir()."""
+    """Main() must read CSVs from output_dir without requiring chdir()."""
     custom_dir = tmp_path / "client_x" / "outputs"
     custom_dir.mkdir(parents=True)
     _make_kpis().to_csv(custom_dir / "kpis.csv", index=False)

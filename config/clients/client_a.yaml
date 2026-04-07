@@ -1,31 +1,30 @@
 # Client configuration for Acme Health Plans
 # ---------------------------------------------------------------------------
-# Maps Acme Health's proprietary CSV column names to the pipeline schema and
-# provides defaults for columns absent in their export format.
+# Maps Acme Health's proprietary CSV column names to the pipeline schema.
+# This file is used by CI — it points to the 20-row committed fixture CSV
+# so no Kaggle credentials or downloaded data are required.
+# For full-scale local dashboards, pipeline-all loads from Kaggle directly
+# via config/kaggle.yaml (insurance_charges dataset).
 # ---------------------------------------------------------------------------
 
 client_id: client_a
 client_name: "Acme Health Plans"
 
-# Path to the client's CSV data file (relative to the repository root).
 files:
   claims: clients/data/client_a/claims.csv
 
-# Rename source column names to pipeline schema column names.
-# Any source column NOT listed here is passed through unchanged.
 column_map:
   claims:
-    claim_no: claim_id        # proprietary claim number → claim_id
-    patient_id: member_id     # patient ID              → member_id
+    claim_no: claim_id # proprietary claim number → claim_id
+    patient_id: member_id # patient ID              → member_id
     physician_id: provider_id # physician ID            → provider_id
-    service_dt: service_date  # service date            → service_date
-    icd_code: diagnosis_code  # ICD diagnosis code      → diagnosis_code
-    cpt_code: procedure_code  # CPT procedure code      → procedure_code
-    charge_amt: paid_amount   # billed charge amount    → paid_amount
-    sex: gender               # sex field               → gender
-    patient_state: region     # state abbreviation      → region
+    service_dt: service_date # service date            → service_date
+    icd_code: diagnosis_code # ICD diagnosis code      → diagnosis_code
+    cpt_code: procedure_code # CPT procedure code      → procedure_code
+    charge_amt: paid_amount # billed charge amount    → paid_amount
+    sex: gender # sex field               → gender
+    patient_state: region # state abbreviation      → region
 
-# Static values injected for required pipeline columns absent in Acme's file.
 defaults:
   claims:
     billed_amount: 0.0

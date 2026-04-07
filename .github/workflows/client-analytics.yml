@@ -117,11 +117,17 @@ jobs:
             --dw-path    outputs/${{ matrix.client }}/insurance_dw.duckdb
 
       # ── Report generation ───────────────────────────────────────────────────
+      - name: Read client display name
+        id: client_name
+        run: |
+          name=$(python -c "import yaml; cfg=yaml.safe_load(open('config/clients/${{ matrix.client }}.yaml')); print(cfg.get('client_name', '${{ matrix.client }}'))")
+          echo "value=$name" >> "$GITHUB_OUTPUT"
+
       - name: Generate analytics report
         run: |
           python -m src.report \
             --output-dir outputs/${{ matrix.client }} \
-            --client-name "${{ matrix.client }}" \
+            --client-name "${{ steps.client_name.outputs.value }}" \
             --out outputs/${{ matrix.client }}/insurance_summary.xlsx
 
       # ── Interactive HTML dashboard ──────────────────────────────────────────
@@ -132,7 +138,7 @@ jobs:
         run: |
           python -m src.generate_html_report \
             --output-dir outputs/${{ matrix.client }} \
-            --client-name "${{ matrix.client }}" \
+            --client-name "${{ steps.client_name.outputs.value }}" \
             --out outputs/${{ matrix.client }}/dashboard.html
 
       # ── GitHub Actions Job Summary ──────────────────────────────────────────

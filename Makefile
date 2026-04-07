@@ -1,4 +1,4 @@
-.PHONY: help install clean test lint format check-types check run-jupyter run-jupyterlab db-init db-reset kaggle-load setup dw-load quality security complexity docs pre-commit airflow-up airflow-down airflow-logs
+.PHONY: help install clean test lint format check-types check run-jupyter run-jupyterlab db-init db-reset kaggle-load setup dw-load dashboard open-dashboard serve-dashboard pipeline-local pipeline-client pipeline-all quality security complexity docs pre-commit airflow-up airflow-down airflow-logs
 
 help:
 	@echo "📊 Insurance Analytics - Production Grade Monorepo"
@@ -21,10 +21,16 @@ help:
 	@echo "  make run-jupyterlab - Start JupyterLab"
 	@echo "  make db-init        - Initialize database"
 	@echo "  make db-reset       - Reset database"
-	@echo "  make kaggle-load    - Download Kaggle dataset and load into database"
+	@echo "  make kaggle-load    - Load Kaggle dataset into database (uses cached CSV — no credentials needed)"
 	@echo "  make setup          - Full setup (db + kaggle data)"
-	@echo "  make dw-load        - Load DuckDB data warehouse (outputs/insurance_dw.duckdb)"
-	@echo "  make airflow-up     - Start Airflow stack (webserver + scheduler)"
+	@echo "  make dw-load            - Load DuckDB data warehouse (outputs/insurance_dw.duckdb)"
+	@echo "  make dashboard          - Generate interactive HTML dashboard (outputs/dashboard.html)"
+	@echo "  make serve-dashboard    - Serve dashboard at http://localhost:8000 — VS Code 'Open in Browser' goes directly to charts"
+	@echo "  make open-dashboard     - Generate dashboard and open it in the default browser"
+	@echo "  make pipeline-local     - Run full local pipeline: transform -> model -> DW -> dashboard"
+	@echo "  make pipeline-client    - Run pipeline for one client: CLIENT_CONFIG=... CLIENT_ID=... CLIENT_NAME=..."
+	@echo "  make pipeline-all       - Run pipelines for all clients, serve combined landing page"
+	@echo "  make airflow-up         - Start Airflow stack (webserver + scheduler)"
 	@echo "  make airflow-down   - Stop Airflow stack"
 	@echo "  make airflow-logs   - Tail Airflow scheduler logs"
 
@@ -139,9 +145,9 @@ db-reset:
 	@echo "✅ Database reset"
 
 kaggle-load:
-	@echo "📥 Downloading and loading Kaggle dataset..."
+	@echo "📥 Loading Kaggle dataset (1,338 claims — uses cached CSV, no credentials needed)..."
 	python -m src.load --kaggle-config config/kaggle.yaml
-	@echo "✅ Kaggle data loaded"
+	@echo "✅ Kaggle data loaded — run 'make pipeline-local' to generate the dashboard"
 
 setup: install db-init kaggle-load
 	@echo "✅ Full setup complete!"
@@ -150,6 +156,71 @@ dw-load:
 	@echo "🏛️  Loading DuckDB data warehouse..."
 	python -m src.dw_load
 	@echo "✅ DW loaded → outputs/insurance_dw.duckdb"
+
+dashboard:
+	@echo "📊 Generating interactive HTML dashboard..."
+	pip install -q -r requirements-dashboard.txt
+	python -m src.generate_html_report \
+		--output-dir outputs \
+		--client-name "Insurance Analytics" \
+		--out outputs/dashboard.html
+	@echo "✅ Dashboard → outputs/dashboard.html"
+
+open-dashboard: dashboard
+	@echo "🌐 Opening dashboard in browser..."
+	@if command -v xdg-open >/dev/null 2>&1; then \
+		xdg-open outputs/dashboard.html; \
+	elif command -v open >/dev/null 2>&1; then \
+		open outputs/dashboard.html; \
+	else \
+		echo "Dashboard saved to outputs/dashboard.html — open it manually in your browser."; \
+	fi
+
+serve-dashboard:
+	@echo "📊 Dashboard → http://localhost:8000  (VS Code 'Open in Browser' goes directly to charts)"
+	@echo "   Press Ctrl+C to stop."
+	python scripts/serve_dashboard.py --dir outputs
+
+pipeline-local:
+	@echo "🚀 Running full local pipeline (uses data already in PostgreSQL)..."
+	@echo "   Tip: run 'make kaggle-load' first to load the Kaggle dataset."
+	python -m src.transform --output-dir outputs
+	python -m src.model     --output-dir outputs
+	python -m src.dw_load   --output-dir outputs --dw-path outputs/insurance_dw.duckdb
+	$(MAKE) dashboard
+	@echo "✅ Local pipeline complete — run 'make serve-dashboard' to view results."
+
+# Run the full pipeline for a single client.  Accepts variables:
+#   CLIENT_CONFIG    — path to the client CSV or kaggle YAML config
+#   CLIENT_ID        — short id used as the output sub-folder name
+#   CLIENT_NAME      — human-readable name shown on the dashboard
+#   KAGGLE_DATASET   — (optional) override active_dataset in kaggle.yaml
+# Examples:
+#   make pipeline-client CLIENT_CONFIG=config/clients/client_a.yaml CLIENT_ID=client_a CLIENT_NAME="Acme Health Plans"
+#   make pipeline-client CLIENT_CONFIG=config/kaggle.yaml KAGGLE_DATASET=insurance_claims CLIENT_ID=client_b CLIENT_NAME="MedTrust Group"
+pipeline-client:
+	@echo "🚀 [$(CLIENT_ID)] Loading data..."
+	@if echo "$(CLIENT_CONFIG)" | grep -q 'clients/'; then \
+		python -m src.load --client-config $(CLIENT_CONFIG); \
+	else \
+		python -m src.load --kaggle-config $(CLIENT_CONFIG) $(if $(KAGGLE_DATASET),--kaggle-dataset $(KAGGLE_DATASET),); \
+	fi
+	@echo "🚀 [$(CLIENT_ID)] Running transform → model → DW → dashboard..."
+	python -m src.transform --output-dir outputs/$(CLIENT_ID)
+	python -m src.model     --output-dir outputs/$(CLIENT_ID)
+	python -m src.dw_load   --output-dir outputs/$(CLIENT_ID) --dw-path outputs/$(CLIENT_ID)/insurance_dw.duckdb
+	pip install -q -r requirements-dashboard.txt
+	python -m src.generate_html_report \
+		--output-dir outputs/$(CLIENT_ID) \
+		--client-name "$(CLIENT_NAME)" \
+		--out outputs/$(CLIENT_ID)/dashboard.html
+	@echo "✅ [$(CLIENT_ID)] Done → outputs/$(CLIENT_ID)/dashboard.html"
+
+pipeline-all:
+	@echo "🚀 Running pipeline for all clients..."
+	$(MAKE) pipeline-client CLIENT_CONFIG=config/kaggle.yaml KAGGLE_DATASET=insurance_charges    CLIENT_ID=client_a CLIENT_NAME="Acme Health Plans"
+	$(MAKE) pipeline-client CLIENT_CONFIG=config/kaggle.yaml KAGGLE_DATASET=healthcare_admissions CLIENT_ID=client_b CLIENT_NAME="MedTrust Group"
+	@echo "✅ All pipelines complete — run 'make serve-dashboard' to view all dashboards."
 
 airflow-up:
 	@echo "🚀 Starting Airflow (webserver on http://localhost:8080)..."

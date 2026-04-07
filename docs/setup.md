@@ -6,12 +6,12 @@
 
 ## ✅ What You Need
 
-| Tool | Version | Why |
-|------|---------|-----|
-| Python | 3.11+ | Runs all pipeline code |
-| PostgreSQL | 15+ | Stores claims data |
-| Docker | any | Easiest way to run PostgreSQL (or the whole dev container) |
-| Kaggle account | — | Download the insurance dataset |
+| Tool           | Version | Why                                                        |
+| -------------- | ------- | ---------------------------------------------------------- |
+| Python         | 3.11+   | Runs all pipeline code                                     |
+| PostgreSQL     | 15+     | Stores claims data                                         |
+| Docker         | any     | Easiest way to run PostgreSQL (or the whole dev container) |
+| Kaggle account | —       | Download the insurance dataset                             |
 
 ---
 
@@ -30,6 +30,7 @@ Step 4 → You're in! Run:  make help
 ```
 
 **The container auto-configures:**
+
 - ✅ Python 3.11 + all dependencies
 - ✅ PostgreSQL 15 running at `db:5432`
 - ✅ Schema created and seeded
@@ -69,10 +70,11 @@ export KAGGLE_KEY=your_kaggle_api_key
 make db-init
 make kaggle-load
 
-# 7. Run the pipeline
-python -m src.transform
-python -m src.model
-python -m src.report --out outputs/insurance_summary.xlsx
+# 7. Run the pipeline and open the dashboard
+make pipeline-local
+# Dashboard written to outputs/dashboard.html — open it in a browser
+open outputs/dashboard.html        # macOS
+# xdg-open outputs/dashboard.html  # Linux
 ```
 
 ---
@@ -81,14 +83,15 @@ python -m src.report --out outputs/insurance_summary.xlsx
 
 Copy `.env.example` → `.env` for local dev (never commit `.env`).
 
-| Variable | Default | Description |
-| `DB_HOST` | `localhost` | Postgres host |
-| `DB_PORT` | `5432` | Postgres port |
-| `DB_USER` | `postgres` | Postgres user |
-| `DB_PASS` | `postgres` | Postgres password |
-| `DB_NAME` | `insurdb` | Database name |
-| `KAGGLE_USERNAME` | — | Your Kaggle username |
-| `KAGGLE_KEY` | — | Kaggle API key (from kaggle.com → Account → API) |
+| Variable          | Default     | Description                                      |
+| ----------------- | ----------- | ------------------------------------------------ |
+| `DB_HOST`         | `localhost` | Postgres host                                    |
+| `DB_PORT`         | `5432`      | Postgres port                                    |
+| `DB_USER`         | `postgres`  | Postgres user                                    |
+| `DB_PASS`         | `postgres`  | Postgres password                                |
+| `DB_NAME`         | `insurdb`   | Database name                                    |
+| `KAGGLE_USERNAME` | —           | Your Kaggle username                             |
+| `KAGGLE_KEY`      | —           | Kaggle API key (from kaggle.com → Account → API) |
 
 ---
 
@@ -110,6 +113,27 @@ pytest tests/ -v -m integration    # integration tests (requires live DB)
 pg_isready -h localhost -p 5432    # Is PostgreSQL running?
 echo $DATABASE_URL                 # Is the env var set?
 ```
+
+</details>
+
+<details>
+<summary>❌ Dashboard is empty or shows "No data available"</summary>
+
+The dashboard reads from the CSV files in `outputs/`. Run the pipeline first:
+
+```bash
+make pipeline-local    # runs transform → model → DW → dashboard
+```
+
+</details>
+
+<details>
+<summary>❌ plotly not found when generating dashboard</summary>
+
+```bash
+pip install -r requirements-dashboard.txt
+```
+
 </details>
 
 <details>
@@ -118,6 +142,7 @@ echo $DATABASE_URL                 # Is the env var set?
 ```bash
 python -m ipykernel install --user --name=insurance --display-name="Insurance Analytics"
 ```
+
 </details>
 
 <details>
@@ -125,6 +150,7 @@ python -m ipykernel install --user --name=insurance --display-name="Insurance An
 
 The loader uses `TRUNCATE … RESTART IDENTITY CASCADE` before each insert — re-running is safe.
 For a full clean slate: `make db-reset`
+
 </details>
 
 <details>
@@ -133,4 +159,5 @@ For a full clean slate: `make db-reset`
 ```bash
 jupyter lab --port=8890
 ```
+
 </details>

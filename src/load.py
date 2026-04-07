@@ -33,7 +33,10 @@ def _table_columns(con, table: str) -> list:
     return [col["name"] for col in inspect(con).get_columns(table, schema=_SCHEMA)]
 
 
-def load_from_kaggle(config_path: str = "config/kaggle.yaml") -> None:
+def load_from_kaggle(
+    config_path: str = "config/kaggle.yaml",
+    active_dataset: str | None = None,
+) -> None:
     """Download (if needed) a Kaggle dataset and load it into the database.
 
     Reads dataset configuration and column mappings from *config_path*
@@ -45,10 +48,14 @@ def load_from_kaggle(config_path: str = "config/kaggle.yaml") -> None:
     ----------
     config_path:
         Path to the Kaggle YAML configuration file.
+    active_dataset:
+        Override the ``active_dataset`` key in the YAML, e.g.
+        ``"insurance_claims"`` to select the second dataset without editing
+        the config file.
     """
     from .kaggle_ingest import load_kaggle_data  # noqa: PLC0415
 
-    dfs = load_kaggle_data(config_path)
+    dfs = load_kaggle_data(config_path, active_dataset)
     _insert_dataframes(dfs["members"], dfs["providers"], dfs["claims"])
     logger.info("Done loading Kaggle data.")
 
@@ -124,6 +131,21 @@ def _insert_dataframes(
     # so Postgres auto-generates valid integer PKs.
     claims_df = claims_df.drop(columns=["claim_id"], errors="ignore")
 
+    # Enforce VARCHAR length limits defined in the DDL so external datasets with
+    # longer string values (e.g. "Hypertension" for diagnosis_code) don't fail.
+    _varchar_limits = {
+        "diagnosis_code": 8,
+        "procedure_code": 8,
+        "place_of_service": 20,
+        "gender": 10,
+        "region": 50,
+    }
+    for col, max_len in _varchar_limits.items():
+        if col in claims_df.columns:
+            claims_df[col] = claims_df[col].astype(str).str[:max_len]
+        if col in members_df.columns:
+            members_df[col] = members_df[col].astype(str).str[:max_len]
+
     members_df.to_sql("member", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
     providers_df.to_sql("provider", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
     claims_df.to_sql("claim", eng, schema=_SCHEMA, if_exists=_IF_EXISTS, index=False)
@@ -153,7 +175,7 @@ def main(parsed_args):
     if parsed_args.client_config:
         load_from_client_csv(parsed_args.client_config)
     else:
-        load_from_kaggle(parsed_args.kaggle_config)
+        load_from_kaggle(parsed_args.kaggle_config, parsed_args.kaggle_dataset)
 
 
 if __name__ == "__main__":
@@ -164,6 +186,11 @@ if __name__ == "__main__":
         "--kaggle-config",
         default="config/kaggle.yaml",
         help="Path to the Kaggle dataset YAML config.",
+    )
+    ap.add_argument(
+        "--kaggle-dataset",
+        default=None,
+        help="Override active_dataset in the Kaggle config (e.g. 'insurance_claims').",
     )
     ap.add_argument(
         "--client-config",

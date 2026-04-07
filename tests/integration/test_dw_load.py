@@ -45,8 +45,8 @@ def test_dw_load_creates_tables_and_counts(tmp_path):
 def test_dw_load_with_custom_output_dir(tmp_path):
     """run_dw_load must load summary CSVs from a non-default output_dir.
 
-    Mirrors the GitHub Actions matrix usage where each client has its own
-    isolated output directory (e.g. outputs/client_a/).
+    Mirrors the GitHub Actions matrix usage where each client has its own isolated output directory
+    (e.g. outputs/client_a/).
     """
     custom_dir = str(tmp_path / "client_test")
     dw_path = str(tmp_path / "client_test_dw.duckdb")
