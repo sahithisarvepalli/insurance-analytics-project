@@ -120,7 +120,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           mkdir -p build/reports
-          pytest -q -m integration \
+          pytest -q \
             --junitxml=build/reports/junit-report.xml \
             --cov=src \
             --cov-report=xml:build/reports/coverage.xml

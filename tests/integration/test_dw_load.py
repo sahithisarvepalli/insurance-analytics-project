@@ -5,11 +5,14 @@ from src.dw_load import run_dw_load
 from src.transform import run_transform
 
 
+@pytest.mark.integration
 def test_dw_load_creates_tables_and_counts(tmp_path):
     # Use a temporary DW file to avoid clobbering outputs during tests
     dw_path = str(tmp_path / "test_insurance_dw.duckdb")
-    # Ensure environment uses same DATABASE_URL as devcontainer/CI
-    run_dw_load(dw_path)
+    output_dir = str(tmp_path / "outputs")
+    # Generate summary CSVs before loading the DW
+    run_transform(output_dir=output_dir)
+    run_dw_load(dw_path, output_dir=output_dir)
 
     conn = duckdb.connect(dw_path)
     try:
