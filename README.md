@@ -7,6 +7,7 @@
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=sahithisarvepalli_insurance-analytics-project&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=sahithisarvepalli_insurance-analytics-project)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub Pages](https://img.shields.io/badge/dashboard-GitHub%20Pages-blue)](https://sahithisarvepalli.github.io/insurance-analytics-project/)
 
 End-to-end insurance analytics platform built with Python + PostgreSQL. A SAS/DB2 practitioner's sandbox for production-quality Python — EtLT pipelines, KPI aggregation, ML modeling, DuckDB data warehouse, and Excel reporting over synthetic claims data.
 
