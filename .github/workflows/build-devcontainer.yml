@@ -59,17 +59,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ── Determine image tags & OCI labels ───────────────────────────────────
-      # On a push to main  → :latest + :sha-<hash>
-      # On a pull_request  → :pr-<number> + :sha-<hash>  (no :latest overwrite)
-      # On workflow_dispatch → :sha-<hash> only (safe re-build without tagging)
+      # On a push to main     → :latest + :sha-<hash>
+      # On a pull_request     → :pr-<number> + :sha-<hash>  (no :latest overwrite)
+      # On workflow_dispatch  → :latest + :sha-<hash>  (intentional bootstrap/hotfix)
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # :latest only when merging to the default branch
-            type=raw,value=latest,enable={{is_default_branch}}
+            # :latest on push to default branch OR on a manual workflow_dispatch
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || github.event_name == 'workflow_dispatch' }}
             # :pr-42 for every pull request (ephemeral; deleted when PR closes)
             type=ref,event=pr
             # immutable per-commit tag: sha-abc1234
