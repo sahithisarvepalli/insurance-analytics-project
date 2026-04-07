@@ -19,8 +19,7 @@ name: Build & Push Dev Container Image
 
 on:
   push:
-    branches:
-      [main, master, "dev", "dev/**", "feature/**", "devimage", "devimage/**"]
+    branches: [main, master]
     paths:
       - ".devcontainer/Dockerfile"
       - ".devcontainer/setup.sh"
