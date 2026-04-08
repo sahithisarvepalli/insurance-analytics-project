@@ -27,8 +27,8 @@ permissions:
   contents: read # allow checkout of source code
   pull-requests: write # allow SonarCloud & Copilot agent to post PR comments/suggestions
   security-events: write # allow uploading SARIF / security scan results
-  pages: write # required by client-analytics.yml publish-dashboard job (called via workflow_call)
-  id-token: write # required by client-analytics.yml publish-dashboard job (called via workflow_call)
+  pages: write # required by publish-pages-main reusable workflow call
+  id-token: write # required for OIDC token used by deploy-pages
 
 jobs:
   # ── JOB 1: Static Analysis & Linting ────────────────────────────────────────
@@ -187,23 +187,24 @@ jobs:
             -Dsonar.projectKey=sahithisarvepalli_insurance-analytics-project
             -Dsonar.host.url=https://sonarcloud.io
 
-  # ── JOB 4: Publish GitHub Pages (only after full pipeline succeeds) ─────────
-  # The build-pages job inside client-analytics.yml already uploaded the
-  # github-pages artifact (artifacts from reusable workflows are stored with
-  # the calling run).  This job simply deploys it — but only after sonarcloud
-  # passes, guaranteeing the quality gate is green before pages go live.
-  publish-pages:
-    name: Publish Dashboard to GitHub Pages
-    runs-on: ubuntu-latest
+  # ── JOB: Publish GitHub Pages on merge to main (full data) ────────────────
+  # This job runs only on pushes to `main` and only after SonarCloud passes.
+  # It invokes the reusable `client-analytics.yml` workflow with
+  # `seed-db: false` so the full Kaggle datasets are ingested and the
+  # `publish-dashboard` job inside the reusable workflow performs the
+  # Pages deploy. CI (seeded fixtures) will not publish Pages.
+  publish-pages-main:
+    name: Publish Dashboards (main)
     needs: sonarcloud
     if: github.ref == 'refs/heads/main'
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deploy
-        uses: actions/deploy-pages@v4
+    uses: ./.github/workflows/client-analytics.yml
+    with:
+      client: "all"
+      called-by-ci: false
+      seed-db: false
+    secrets: inherit
+
+  # ── GitHub Pages ────────────────────────────────────────────────────────────
+  # Pages are NOT deployed from CI. The 20-row seed fixtures used here must
+  # never appear on the live site. The scheduled-pipeline.yml deploys Pages
+  # after a full Kaggle ingest, ensuring dashboards always show real data.
