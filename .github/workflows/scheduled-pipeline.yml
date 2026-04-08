@@ -33,4 +33,5 @@ jobs:
     with:
       client: "all"
       called-by-ci: false
+      seed-db: false # live Kaggle ingest — dashboards show real claims data
     secrets: inherit

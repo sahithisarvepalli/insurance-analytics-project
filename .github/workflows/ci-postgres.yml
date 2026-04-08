@@ -82,6 +82,7 @@ jobs:
     with:
       client: "all"
       called-by-ci: true # suppress Pages deploy here; publish-pages runs after sonarcloud
+      seed-db: true # use fixed test fixtures — fast and no Kaggle creds needed in CI
     secrets: inherit
 
   # ── JOB 2c: Collect coverage & upload ────────────────────────────────────────
