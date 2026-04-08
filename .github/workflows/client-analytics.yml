@@ -295,9 +295,11 @@ jobs:
     name: Build Pages artifact (PR-friendly)
     needs: [set-matrix, analytics]
     runs-on: ubuntu-latest
-    # Build (but don't deploy) the Pages artifact on PRs and when called by CI.
-    # On main in standalone mode publish-dashboard owns the full build+deploy.
-    if: ${{ github.ref != 'refs/heads/main' || inputs.called-by-ci }}
+    # Build (but don't deploy) the Pages artifact only on PRs from feature
+    # branches (for preview purposes).  Skip entirely when called by CI
+    # (seed data must not produce a deployable artifact) and skip on standalone
+    # main runs (publish-dashboard handles the full build+deploy there).
+    if: ${{ github.ref != 'refs/heads/main' && !inputs.called-by-ci }}
     steps:
       - uses: actions/checkout@v4
 

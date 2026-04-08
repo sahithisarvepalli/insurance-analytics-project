@@ -27,8 +27,9 @@ permissions:
   contents: read # allow checkout of source code
   pull-requests: write # allow SonarCloud & Copilot agent to post PR comments/suggestions
   security-events: write # allow uploading SARIF / security scan results
-  pages: write # required by client-analytics.yml publish-dashboard job (called via workflow_call)
-  id-token: write # required by client-analytics.yml publish-dashboard job (called via workflow_call)
+  # pages: write and id-token: write are intentionally omitted — GitHub Pages
+  # is only deployed by the scheduled pipeline (with full Kaggle data), never
+  # by CI (which uses 20-row seed fixtures that must not go live).
 
 jobs:
   # ── JOB 1: Static Analysis & Linting ────────────────────────────────────────
@@ -187,23 +188,7 @@ jobs:
             -Dsonar.projectKey=sahithisarvepalli_insurance-analytics-project
             -Dsonar.host.url=https://sonarcloud.io
 
-  # ── JOB 4: Publish GitHub Pages (only after full pipeline succeeds) ─────────
-  # The build-pages job inside client-analytics.yml already uploaded the
-  # github-pages artifact (artifacts from reusable workflows are stored with
-  # the calling run).  This job simply deploys it — but only after sonarcloud
-  # passes, guaranteeing the quality gate is green before pages go live.
-  publish-pages:
-    name: Publish Dashboard to GitHub Pages
-    runs-on: ubuntu-latest
-    needs: sonarcloud
-    if: github.ref == 'refs/heads/main'
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deploy
-        uses: actions/deploy-pages@v4
+  # ── GitHub Pages ────────────────────────────────────────────────────────────
+  # Pages are NOT deployed from CI. The 20-row seed fixtures used here must
+  # never appear on the live site. The scheduled-pipeline.yml deploys Pages
+  # after a full Kaggle ingest, ensuring dashboards always show real data.
