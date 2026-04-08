@@ -50,6 +50,14 @@ on:
         required: false
         default: true
         type: boolean
+      artifact-suffix:
+        description: >
+          Optional suffix appended to artifact names (e.g. '-ci').
+          Use distinct values when multiple calls run in the same workflow run
+          to avoid 409 Conflict errors on artifact upload.
+        required: false
+        default: ""
+        type: string
     secrets:
       KAGGLE_USERNAME:
         required: false
@@ -280,7 +288,7 @@ jobs:
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
         with:
-          name: report-${{ matrix.client }}-run${{ github.run_number }}
+          name: report-${{ matrix.client }}-run${{ github.run_number }}${{ inputs.artifact-suffix }}
           path: outputs/${{ matrix.client }}/
           retention-days: 30
 
@@ -306,7 +314,7 @@ jobs:
       - name: Download client_a artifact
         uses: actions/download-artifact@v4
         with:
-          name: report-client_a-run${{ github.run_number }}
+          name: report-client_a-run${{ github.run_number }}${{ inputs.artifact-suffix }}
           path: _artifacts/client_a
         continue-on-error: true
 
@@ -325,7 +333,7 @@ jobs:
       - name: Download client_b artifact
         uses: actions/download-artifact@v4
         with:
-          name: report-client_b-run${{ github.run_number }}
+          name: report-client_b-run${{ github.run_number }}${{ inputs.artifact-suffix }}
           path: _artifacts/client_b
         continue-on-error: true
 
@@ -405,7 +413,7 @@ jobs:
       - name: Download client_a artifact
         uses: actions/download-artifact@v4
         with:
-          name: report-client_a-run${{ github.run_number }}
+          name: report-client_a-run${{ github.run_number }}${{ inputs.artifact-suffix }}
           path: _artifacts/client_a
         continue-on-error: true
 
@@ -424,7 +432,7 @@ jobs:
       - name: Download client_b artifact
         uses: actions/download-artifact@v4
         with:
-          name: report-client_b-run${{ github.run_number }}
+          name: report-client_b-run${{ github.run_number }}${{ inputs.artifact-suffix }}
           path: _artifacts/client_b
         continue-on-error: true
 
