@@ -79,7 +79,11 @@ datasets:
         "Billing Amount": paid_amount # hospital billing  → paid_amount
         Gender: gender # Gender            → gender
         Age: age # Age               → age
-        "Medical Condition": diagnosis_code # condition    → diagnosis_code
+        # "Medical Condition" contains free-text names (e.g. "Hypertension")
+        # which exceed the VARCHAR(8) DDL limit for diagnosis_code.
+        # It is intentionally NOT mapped here; diagnosis_code is set via
+        # defaults below so the column is populated without violating the
+        # schema constraint.
         "Date of Admission": service_date # admission dt  → service_date
         Hospital: region # hospital name     → region
 
@@ -89,3 +93,4 @@ datasets:
         allowed_amount: 0.0
         place_of_service: "Hospital"
         procedure_code: "99213"
+        diagnosis_code: "Z00" # placeholder — source has no ICD codes
