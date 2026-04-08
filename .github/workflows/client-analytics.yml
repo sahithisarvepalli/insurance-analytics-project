@@ -383,9 +383,10 @@ jobs:
   publish-dashboard:
     name: Publish Dashboard to GitHub Pages
     needs: [set-matrix, analytics]
-    # Only publish from standalone scheduled/manual runs on main.
-    # When called-by-ci=true, ci-postgres.yml's publish-pages job handles the
-    # deploy after sonarcloud completes, so we skip it here.
+    # Only publish when analytics succeeded, not called from CI (seed data),
+    # and running on main. Callers that want Pages deployed must pass
+    # called-by-ci: false (scheduled-pipeline.yml and publish-pages-main in
+    # ci-postgres.yml both do this with seed-db: false / full Kaggle data).
     if: ${{ needs.analytics.result == 'success' && !inputs.called-by-ci && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
