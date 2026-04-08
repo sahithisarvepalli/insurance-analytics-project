@@ -27,9 +27,8 @@ permissions:
   contents: read # allow checkout of source code
   pull-requests: write # allow SonarCloud & Copilot agent to post PR comments/suggestions
   security-events: write # allow uploading SARIF / security scan results
-  # pages: write and id-token: write are intentionally omitted — GitHub Pages
-  # is only deployed by the scheduled pipeline (with full Kaggle data), never
-  # by CI (which uses 20-row seed fixtures that must not go live).
+  pages: write # required by publish-pages-main reusable workflow call
+  id-token: write # required for OIDC token used by deploy-pages
 
 jobs:
   # ── JOB 1: Static Analysis & Linting ────────────────────────────────────────
@@ -204,9 +203,6 @@ jobs:
       called-by-ci: false
       seed-db: false
     secrets: inherit
-    permissions:
-      pages: write
-      id-token: write
 
   # ── GitHub Pages ────────────────────────────────────────────────────────────
   # Pages are NOT deployed from CI. The 20-row seed fixtures used here must
