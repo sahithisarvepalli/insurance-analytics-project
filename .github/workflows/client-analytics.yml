@@ -18,6 +18,13 @@ on:
           - all
           - client_a
           - client_b
+      seed-db:
+        description: >
+          When true, seed the DB with fixed test fixtures instead of a live
+          Kaggle ingest. Set to false for a full production run.
+        required: false
+        default: true
+        type: boolean
 
   # Called by ci-postgres.yml on every src/** change so errors are caught early.
   workflow_call:
@@ -34,6 +41,20 @@ on:
         required: false
         default: false
         type: boolean
+      seed-db:
+        description: >
+          When true (default for CI), seed the DB with fixed test fixtures —
+          fast and requires no Kaggle credentials. When false (use for
+          scheduled/production runs), perform a live Kaggle ingest so
+          dashboards reflect real claims data.
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      KAGGLE_USERNAME:
+        required: false
+      KAGGLE_KEY:
+        required: false
 
   schedule:
     - cron: "0 6 * * 1" # Every Monday at 06:00 UTC
@@ -91,6 +112,8 @@ jobs:
     env:
       DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/insurdb
       PYTHONPATH: ${{ github.workspace }}
+      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -99,11 +122,16 @@ jobs:
         uses: ./.github/actions/setup-python-env
 
       # ── Load client data ────────────────────────────────────────────────────
-      # Seed the DB with shared test fixtures (no CSV files or Kaggle
-      # credentials required).  The same 20-row dataset is used for every
-      # client so the pipeline logic is exercised identically.
+      # CI (seed-db: true):  seed with fixed 20-row fixtures — fast, no creds.
+      # Scheduled (seed-db: false): live Kaggle ingest so dashboards show
+      # real claims data.
       - name: Seed test database
+        if: ${{ inputs.seed-db != false }}
         run: python .github/scripts/seed_test_db.py
+
+      - name: Ingest Kaggle dataset
+        if: ${{ inputs.seed-db == false }}
+        run: python -m src.load --kaggle-config config/kaggle.yaml
 
       # ── ETL pipeline ────────────────────────────────────────────────────────
       - name: Run ETL transform
