@@ -129,9 +129,21 @@ jobs:
         if: ${{ inputs.seed-db != false }}
         run: python .github/scripts/seed_test_db.py
 
+      - name: Read client Kaggle dataset
+        if: ${{ inputs.seed-db == false }}
+        id: kaggle_ds
+        run: |
+          ds=$(python -c "import yaml; cfg=yaml.safe_load(open('config/clients/${{ matrix.client }}.yaml')); print(cfg.get('kaggle_dataset', ''))")
+          echo "value=$ds" >> "$GITHUB_OUTPUT"
+
       - name: Ingest Kaggle dataset
         if: ${{ inputs.seed-db == false }}
-        run: python -m src.load --kaggle-config config/kaggle.yaml
+        run: |
+          EXTRA=""
+          if [ -n "${{ steps.kaggle_ds.outputs.value }}" ]; then
+            EXTRA="--kaggle-dataset ${{ steps.kaggle_ds.outputs.value }}"
+          fi
+          python -m src.load --kaggle-config config/kaggle.yaml $EXTRA
 
       # ── ETL pipeline ────────────────────────────────────────────────────────
       - name: Run ETL transform

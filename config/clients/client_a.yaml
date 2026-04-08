@@ -10,6 +10,11 @@
 client_id: client_a
 client_name: "Acme Health Plans"
 
+# Kaggle dataset to use when running analytics on a scheduled/production run
+# (no client CSV available in CI). Must match a key under 'datasets' in
+# config/kaggle.yaml.
+kaggle_dataset: insurance_charges
+
 files:
   claims: data/clients/client_a/claims.csv
 
