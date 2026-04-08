@@ -8,6 +8,11 @@ on:
   # ── Manual trigger so you can run it on-demand from the Actions tab ────────
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write # required to deploy GitHub Pages
+  id-token: write # required for OIDC token used by deploy-pages
+
 jobs:
   pipeline:
     uses: ./.github/workflows/run-pipeline.yml
@@ -16,4 +21,16 @@ jobs:
       upload-outputs: true
       load-dw: true
       artifact-retention-days: 30
+    secrets: inherit
+
+  # ── Per-client analytics + GitHub Pages deploy ────────────────────────────
+  # Runs after the ETL pipeline so dashboards reflect fresh data.
+  # called-by-ci: false lets client-analytics.yml's publish-dashboard job
+  # handle the full build + deploy (not just the build-only path used in CI).
+  client-analytics:
+    needs: pipeline
+    uses: ./.github/workflows/client-analytics.yml
+    with:
+      client: "all"
+      called-by-ci: false
     secrets: inherit
