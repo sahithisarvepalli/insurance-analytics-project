@@ -188,6 +188,26 @@ jobs:
             -Dsonar.projectKey=sahithisarvepalli_insurance-analytics-project
             -Dsonar.host.url=https://sonarcloud.io
 
+  # ── JOB: Publish GitHub Pages on merge to main (full data) ────────────────
+  # This job runs only on pushes to `main` and only after SonarCloud passes.
+  # It invokes the reusable `client-analytics.yml` workflow with
+  # `seed-db: false` so the full Kaggle datasets are ingested and the
+  # `publish-dashboard` job inside the reusable workflow performs the
+  # Pages deploy. CI (seeded fixtures) will not publish Pages.
+  publish-pages-main:
+    name: Publish Dashboards (main)
+    needs: sonarcloud
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/client-analytics.yml
+    with:
+      client: "all"
+      called-by-ci: false
+      seed-db: false
+    secrets: inherit
+    permissions:
+      pages: write
+      id-token: write
+
   # ── GitHub Pages ────────────────────────────────────────────────────────────
   # Pages are NOT deployed from CI. The 20-row seed fixtures used here must
   # never appear on the live site. The scheduled-pipeline.yml deploys Pages
