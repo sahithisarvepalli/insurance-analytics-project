@@ -10,6 +10,11 @@
 client_id: client_b
 client_name: "MedTrust Group"
 
+# Kaggle dataset to use when running analytics on a scheduled/production run.
+# healthcare_admissions is a larger, structurally different dataset that
+# produces distinct visualizations from client_a's insurance_charges data.
+kaggle_dataset: healthcare_admissions
+
 files:
   claims: data/clients/client_b/claims.csv
 
