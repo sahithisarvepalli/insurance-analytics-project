@@ -21,13 +21,36 @@
 
 **Prerequisites:** VS Code + [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) + Docker Desktop
 
+### A1 — Clone repository into a container volume (recommended for Docker Desktop / WSL2)
+
+This workflow stores the code inside a Docker-managed volume rather than a host bind-mount.
+It avoids Windows-path / WSL bind-mount instability and works reliably when Docker Desktop is running.
+
 ```
-Step 1 → Clone the repo and open it in VS Code
-Step 2 → VS Code prompts "Reopen in Container" → click it
-            (or Ctrl+Shift+P → "Dev Containers: Reopen in Container")
-Step 3 → Wait ~3–5 min for first build ☕
-Step 4 → You're in! Run:  make help
+Step 1 → Open VS Code
+Step 2 → Ctrl+Shift+P → "Dev Containers: Clone Repository in Container Volume…"
+Step 3 → Enter:  https://github.com/sahithisarvepalli/insurance-analytics-project
+Step 4 → VS Code clones the repo into a Docker volume and builds the container (~3–5 min ☕)
+Step 5 → You're in! Run:  make help
 ```
+
+### A2 — Reopen existing local clone in container (bind-mount workflow)
+
+```
+Step 1 → Clone the repo to your WSL2 filesystem (e.g. ~/projects/)
+             git clone https://github.com/sahithisarvepalli/insurance-analytics-project \
+               ~/projects/insurance-analytics-project
+Step 2 → Open the folder in VS Code
+Step 3 → VS Code prompts "Reopen in Container" → click it
+             (or Ctrl+Shift+P → "Dev Containers: Reopen in Container")
+Step 4 → Wait ~3–5 min for first build ☕
+Step 5 → You're in! Run:  make help
+```
+
+> **💡 WSL2 + Docker Desktop users:** Always store the repository inside the WSL2 filesystem
+> (e.g. `~/projects/insurance-analytics-project`), **not** on the Windows drive (`/mnt/c/...`).
+> Bind-mounting Windows paths through Docker Desktop causes path-resolution conflicts.
+> Docker Desktop can remain running — it is required for Sonar MCP and Airflow.
 
 **The container auto-configures:**
 
@@ -36,13 +59,6 @@ Step 4 → You're in! Run:  make help
 - ✅ Schema created and seeded
 - ✅ Jupyter kernel + VS Code extensions
 
-> **💡 WSL2 + Docker Desktop users:** For the most reliable rebuild experience, store the
-> repository inside the WSL2 filesystem (e.g. `~/projects/insurance-analytics-project`) rather
-> than on the Windows drive (`/mnt/c/...`). Bind-mounting Windows paths through Docker Desktop
-> can cause path-resolution conflicts that lead to `Exit code 1` on container rebuild. Once the
-> repo is on the WSL2 filesystem, rebuilds work consistently even when Docker Desktop is running
-> in the background (which is required for tools like Sonar MCP).
->
 > **If DB init fails on first build:** The container will still open successfully. Run
 > `make setup` once inside the container to initialize the database and load sample data.
 
@@ -117,25 +133,37 @@ pytest tests/ -v -m integration    # integration tests (requires live DB)
 ## 🔧 Troubleshooting
 
 <details>
-<summary>❌ Dev container rebuild fails with Exit code 1 (Docker Desktop running)</summary>
+<summary>❌ Dev container fails with "unexpected end of parent stream" or `.gitconfig` errors</summary>
 
-This usually happens when the repository lives on the Windows filesystem (`/mnt/c/...`) and
-Docker Desktop's WSL integration resolves bind-mount paths differently from the devcontainer CLI.
+This happens when the host `~/.gitconfig` is a **directory** instead of a file.
+VS Code Dev Containers tries to copy it into the container as a file, which fails.
 
-**Fix:** Move the repo into the WSL2 filesystem:
+**Automatic fix:** The `initializeCommand` in `devcontainer.json` now repairs this automatically
+before each container start.
+
+**Manual fix (if still needed):** From a WSL or Linux terminal on the host:
 ```bash
-# From a WSL terminal
-cp -r /mnt/c/Users/<you>/myGit/insurance-analytics-project ~/projects/
-code ~/projects/insurance-analytics-project
+# Check whether the path is a directory
+ls -ld ~/.gitconfig
+
+# If it is, replace it with an empty file
+rm -rf ~/.gitconfig && touch ~/.gitconfig
 ```
 
-Then rebuild the container from the WSL-native path.  Docker Desktop can remain running — it is
-needed for Sonar MCP and Airflow.
+Then rebuild the container (`Dev Containers: Rebuild and Reopen in Container`).
 
-If you must keep the repo on `/mnt/c/`, ensure **Docker Desktop → Settings → Resources → WSL
-Integration** has your Ubuntu distro enabled and try a clean rebuild:
-1. `Dev Containers: Clean Up Dev Containers` (VS Code command palette)
-2. `Dev Containers: Rebuild and Reopen in Container`
+</details>
+
+<details>
+<summary>❌ Dev container rebuild fails with Exit code 1 (Docker Desktop running)</summary>
+
+Prefer the **Clone in Container Volume** workflow (Option A1 above) — the workspace lives
+inside a Docker-managed volume so there are no Windows/WSL bind-mount conflicts.
+
+If you need the bind-mount workflow (Option A2):
+- Store the repo inside the WSL2 filesystem (`~/projects/...`), **not** `/mnt/c/...`
+- Ensure **Docker Desktop → Settings → Resources → WSL Integration** has your Ubuntu distro enabled
+- Clean rebuild: `Dev Containers: Clean Up Dev Containers`, then `Dev Containers: Rebuild and Reopen in Container`
 
 </details>
 

@@ -2,11 +2,12 @@
     "name": "Insurance Analytics - Production",
     "dockerComposeFile": "docker-compose.yml",
     "service": "app",
-    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "workspaceFolder": "/workspaces/insurance-analytics-project",
     "shutdownAction": "stopCompose",
+    "initializeCommand": ["bash", ".devcontainer/pre-init.sh"],
     "remoteEnv": {
         "DATABASE_URL": "postgresql://postgres:postgres@db:5432/insurdb",
-        "PYTHONPATH": "/workspaces/${localWorkspaceFolderBasename}",
+        "PYTHONPATH": "/workspaces/insurance-analytics-project",
         "JUPYTER_ENABLE_LAB": "yes"
     },
     "postCreateCommand": "bash .devcontainer/setup.sh",
