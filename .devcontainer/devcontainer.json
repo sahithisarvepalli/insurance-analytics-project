@@ -34,10 +34,8 @@
                 "ms-python.python",
                 "ms-python.vscode-pylance",
                 "ms-python.debugpy",
-                "ms-python.pylint",
-                "ms-python.black-formatter",
-                "ms-python.isort",
-                "ms-python.flake8",
+                "charliermarsh.ruff",
+                "sonarsource.sonarlint-vscode",
                 "ms-python.mypy-type-checker",
                 "ms-toolsai.jupyter",
                 "ms-toolsai.jupyter-keymap",
@@ -64,23 +62,14 @@
             ],
             "settings": {
                 "python.defaultInterpreterPath": "${containerEnv:PYTHONPATH}",
-                "python.linting.enabled": true,
-                "python.linting.pylintEnabled": true,
-                "python.linting.flake8Enabled": true,
-                "python.linting.mypyEnabled": true,
-                "python.linting.banditEnabled": true,
-                "python.linting.ruffEnabled": true,
-                "python.formatting.provider": "black",
-                "python.formatting.blackArgs": ["--line-length=100"],
-                "python.sortImports.args": ["--profile", "black"],
                 "python.testing.pytestEnabled": true,
                 "python.testing.unittestEnabled": false,
                 "[python]": {
-                    "editor.defaultFormatter": "ms-python.black-formatter",
+                    "editor.defaultFormatter": "charliermarsh.ruff",
                     "editor.formatOnSave": true,
                     "editor.codeActionsOnSave": {
-                        "source.organizeImports": true,
-                        "source.fixAll": true
+                        "source.fixAll.ruff": true,
+                        "source.organizeImports.ruff": true
                     }
                 },
                 "[json]": {
@@ -101,6 +90,7 @@
                         "other": "off"
                     }
                 },
+                "dev.containers.mountWaylandSocket": false,
                 "editor.rulers": [100],
                 "editor.tabSize": 4,
                 "editor.insertSpaces": true,
