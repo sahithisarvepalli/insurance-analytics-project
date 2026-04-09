@@ -7,8 +7,8 @@ help:
 	@echo "  make install        - Install all dependencies"
 	@echo "  make clean          - Clean build artifacts and cache"
 	@echo "  make test           - Run tests with coverage"
-	@echo "  make lint           - Run linters (flake8, pylint, ruff)"
-	@echo "  make format         - Format code (black, isort)"
+	@echo "  make lint           - Run linters (ruff, pylint)"
+	@echo "  make format         - Format code (ruff format + ruff check --fix)"
 	@echo "  make check-types    - Run type checking (mypy)"
 	@echo "  make quality        - Run code quality checks (bandit, radon, etc.)"
 	@echo "  make security       - Run security analysis"
@@ -62,16 +62,14 @@ test:
 
 lint:
 	@echo "🔍 Running linters..."
-	flake8 src tests examples/concepts
 	ruff check src tests examples/concepts
 	pylint src tests examples/concepts || true
 	@echo "✅ Linting completed"
 
 format:
 	@echo "🪄 Formatting code..."
-	isort src tests examples/concepts --profile black
-	black src tests examples/concepts --line-length=100
 	ruff format src tests examples/concepts
+	ruff check --fix src tests examples/concepts
 	find src tests examples/concepts -name "*.py" -exec docformatter --in-place --wrap-summaries=100 --wrap-descriptions=100 {} \;
 	@echo "✅ Code formatted"
 

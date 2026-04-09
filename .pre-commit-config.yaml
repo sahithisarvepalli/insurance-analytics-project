@@ -12,26 +12,14 @@ repos:
       - id: check-case-conflict
       - id: check-executables-have-shebangs
 
-  - repo: https://github.com/psf/black
-    rev: 24.1.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
     hooks:
-      - id: black
-        language_version: python3
-        args: [--line-length=100]
-        exclude: ^examples/
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        args: [--profile=black, --line-length=100]
-        exclude: ^examples/
-
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
-        exclude: ^examples/
+      - id: ruff
+        args: [--fix]
+        exclude: ^(examples|airflow)/
+      - id: ruff-format
+        exclude: ^(examples|airflow)/
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
@@ -62,16 +50,6 @@ repos:
       - id: pylint
         args: [--rcfile=pyproject.toml]
         exclude: ^(examples|src|tests|airflow|\.github)/
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.13
-    hooks:
-      - id: ruff
-        args: [--fix, --ignore=E402]
-        exclude: ^(examples|airflow)/
-      - id: ruff-format
-        args: [--line-length=100]
-        exclude: ^(examples|airflow)/
 
   - repo: https://github.com/pycqa/docformatter
     rev: v1.7.5

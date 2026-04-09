@@ -42,15 +42,13 @@ jobs:
         with:
           dev-deps: "true"
 
-      - name: Format check (black + isort)
+      - name: Format check (ruff)
         run: |
-          black --check --diff src tests
-          isort --check-only --diff src tests
+          ruff format --check --diff src tests
+          ruff check src tests
 
-      - name: Lint (flake8 + pylint)
-        run: |
-          flake8 src tests
-          pylint src || true   # treat warnings as non-blocking
+      - name: Lint (pylint)
+        run: pylint src || true   # treat warnings as non-blocking
 
       - name: Type check (mypy)
         run: mypy src

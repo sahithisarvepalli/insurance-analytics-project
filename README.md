@@ -116,8 +116,8 @@ a recommended migration roadmap.
 | --------------------- | ---------------------------------------- |
 | `make setup`          | Full init (db + Kaggle data)             |
 | `make test`           | pytest with coverage                     |
-| `make lint`           | flake8 + pylint + ruff                   |
-| `make format`         | black + isort + ruff format              |
+| `make lint`           | ruff check + pylint                      |
+| `make format`         | ruff format + ruff check --fix           |
 | `make check-types`    | mypy                                     |
 | `make quality`        | bandit + radon + xenon                   |
 | `make check`          | All of the above                         |
