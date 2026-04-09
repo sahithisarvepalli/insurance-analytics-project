@@ -1,0 +1,25 @@
+{
+    "servers": {
+        "sonarqube": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+                "-y",
+                "@sonarqube/mcp-server"
+            ],
+            "env": {
+                "SONARQUBE_URL": "https://sonarcloud.io",
+                "SONARQUBE_TOKEN": "${input:sonarqubeToken}",
+                "SONARQUBE_ORGANIZATION": "sahithisarvepalli"
+            }
+        }
+    },
+    "inputs": [
+        {
+            "id": "sonarqubeToken",
+            "type": "promptString",
+            "description": "SonarCloud user token (generate at https://sonarcloud.io/account/security)",
+            "password": true
+        }
+    ]
+}

@@ -27,6 +27,7 @@ ENV/
 # IDE
 .vscode/
 !.vscode/settings.json
+!.vscode/mcp.json
 .idea/
 
 # Local data & outputs
