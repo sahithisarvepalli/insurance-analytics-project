@@ -43,4 +43,9 @@ pre-commit install --install-hooks || echo "⚠️  Pre-commit setup failed, con
 
 # Step 4: Run database initialization
 echo ""
-bash .devcontainer/init-db.sh
+if bash .devcontainer/init-db.sh; then
+    echo "✅ Database initialization complete"
+else
+    echo "⚠️  Database initialization failed (DB may not be ready yet)."
+    echo "    Run 'make setup' inside the container once PostgreSQL is available."
+fi

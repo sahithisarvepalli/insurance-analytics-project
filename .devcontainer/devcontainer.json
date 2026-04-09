@@ -3,6 +3,7 @@
     "dockerComposeFile": "docker-compose.yml",
     "service": "app",
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "shutdownAction": "stopCompose",
     "remoteEnv": {
         "DATABASE_URL": "postgresql://postgres:postgres@db:5432/insurdb",
         "PYTHONPATH": "/workspaces/${localWorkspaceFolderBasename}",
@@ -61,7 +62,7 @@
                 "redhat.vscode-yaml"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "${containerEnv:PYTHONPATH}",
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
                 "python.testing.pytestEnabled": true,
                 "python.testing.unittestEnabled": false,
                 "[python]": {
