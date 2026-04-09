@@ -33,8 +33,8 @@ lint  →  etl  →  sonarcloud
 Runs on every **push** to `main`/`master` that touches `src/**`, `tests/**`, `src/sql/**`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml`. **Pull requests** to those branches trigger `lint` only when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are changed (`src/sql/**` and other config files do **not** trigger CI on PRs).
 
 Steps:
-1. `black --check` + `isort --check` – formatting
-2. `flake8` + `pylint` – style and errors
+1. `ruff format --check` – formatting check
+2. `ruff check` + `pylint` – linting (ruff is non-blocking on auto-fixable issues; pylint is non-blocking)
 3. `mypy src` – static type checking
 4. `bandit -r src` – security scan
 5. `radon cc` + `radon mi` – cyclomatic complexity and maintainability index
@@ -132,7 +132,9 @@ make pre-commit
 pre-commit run --all-files
 ```
 
-Typical hooks in this project: `black`, `isort`, `flake8`, trailing-whitespace / end-of-file fixers.
+This project uses **Ruff** as the unified linter and formatter in pre-commit, replacing the
+former `black`, `isort`, and `flake8` hooks. Typical hooks: `ruff` (lint + fix),
+`ruff-format`, trailing-whitespace / end-of-file fixers.
 
 First-time setup:
 
@@ -166,7 +168,7 @@ Prefer adding new behaviour as a composite action or to the reusable workflow so
 
 | Failure | Likely cause | Fix |
 |---|---|---|
-| `black --check` fails | Code not formatted | Run `make format` locally, then commit |
+| `ruff format --check` fails | Code not formatted | Run `make format` locally, then commit |
 | `mypy` errors | Missing type annotations or wrong types | Add/fix type hints in `src/` |
 | `bandit` security warning | Use of a flagged function (e.g. `subprocess`, `pickle`) | Refactor or add `# nosec` with justification |
 | Postgres connection refused | Service container not ready | The reusable workflow uses health-checks on the Postgres service; if you see failures, confirm the `run-pipeline.yml` service definition and health options. |

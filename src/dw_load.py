@@ -64,7 +64,7 @@ def load_dim_member(dw: duckdb.DuckDBPyConnection, engine: Engine) -> None:
     dw.execute("DELETE FROM dim_member")  # noqa: S608
     dw.register("_dim_member", df)
     dw.execute(
-        "INSERT INTO dim_member " "SELECT member_id, dob, gender, region, age_band FROM _dim_member"
+        "INSERT INTO dim_member SELECT member_id, dob, gender, region, age_band FROM _dim_member"
     )
     dw.unregister("_dim_member")
     logger.info("dim_member: loaded %d rows", len(df))

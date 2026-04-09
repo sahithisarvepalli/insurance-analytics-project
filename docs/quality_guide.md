@@ -13,8 +13,8 @@ Every git push / pull request triggers:
   │  1️⃣ Lint         │──▶│  2️⃣ Test         │──▶│  3️⃣ SonarCloud  │
   │  "Grammar check" │   │  "Does it work?" │   │  "Health score" │
   │                 │   │                 │   │                 │
-  │ black           │   │ pytest          │   │ Technical debt  │
-  │ flake8/pylint   │   │ PostgreSQL DB   │   │ Coverage trend  │
+  │ ruff (lint+fmt) │   │ pytest          │   │ Technical debt  │
+  │ pylint          │   │ PostgreSQL DB   │   │ Coverage trend  │
   │ mypy            │   │ coverage.xml    │   │ Quality gate    │
   │ bandit          │   │ junit-report    │   │                 │
   └─────────────────┘   └─────────────────┘   └─────────────────┘
@@ -25,13 +25,36 @@ Every git push / pull request triggers:
 
 | Tool | What it catches |
 |------|----------------|
-| `black` | Inconsistent formatting |
-| `flake8` | PEP8 violations, unused imports |
+| `ruff format` | Inconsistent formatting (replaces black) |
+| `ruff check` | PEP8 violations, unused imports, import order (replaces flake8 + isort) |
 | `pylint` | Logic smells, undefined names |
 | `mypy` | Type errors |
 | `bandit` | Security vulnerabilities |
 
+> **Why Ruff?** Ruff is a single, extremely fast tool (written in Rust) that replaces
+> `flake8`, `isort`, `black`, and more. It executes in milliseconds, giving instant
+> feedback as you type rather than waiting for slow commit hooks.
+
 Run locally: `make lint` or `make format` (auto-fix formatting)
+
+#### VS Code — Format on Save
+
+Install the [Ruff VS Code extension](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
+(extension ID: `charliermarsh.ruff`). The `.vscode/settings.json` in this repo already
+configures format-on-save:
+
+```json
+{
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        }
+    }
+}
+```
 
 ### Gate 2 — Test (Correctness)
 
