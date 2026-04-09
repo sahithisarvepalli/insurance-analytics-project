@@ -392,9 +392,9 @@ def test_run_transform_diagnosis_summary_covers_all_codes():
     ds = captured[0]
     expected_codes = set(df["diagnosis_code"].unique())
     actual_codes = set(ds["diagnosis_code"].unique())
-    assert (
-        expected_codes == actual_codes
-    ), f"Diagnosis codes mismatch — expected {expected_codes}, got {actual_codes}"
+    assert expected_codes == actual_codes, (
+        f"Diagnosis codes mismatch — expected {expected_codes}, got {actual_codes}"
+    )
 
 
 @pytest.mark.unit
@@ -445,9 +445,9 @@ def test_run_transform_uses_custom_output_dir(tmp_path):
 
     assert captured_paths, "run_transform must write at least one CSV file"
     for path in captured_paths:
-        assert path.startswith(
-            custom_dir
-        ), f"Expected every CSV to be written under '{custom_dir}', got '{path}'"
+        assert path.startswith(custom_dir), (
+            f"Expected every CSV to be written under '{custom_dir}', got '{path}'"
+        )
     written_names = {os.path.basename(p) for p in captured_paths}
     assert "kpis.csv" in written_names
     assert "monthly.csv" in written_names

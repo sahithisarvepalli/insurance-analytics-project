@@ -248,8 +248,7 @@ def _parse_dataset_config(
     datasets = cfg.get("datasets", {})
     if active not in datasets:
         raise KeyError(
-            f"Dataset '{active}' not found in config. "
-            f"Available datasets: {list(datasets.keys())}"
+            f"Dataset '{active}' not found in config. Available datasets: {list(datasets.keys())}"
         )
 
     dataset_cfg = datasets[active]
