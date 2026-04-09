@@ -44,7 +44,7 @@ status "Python version: $PYTHON_VERSION"
 
 # Check if dependencies are installed
 status "Checking dependencies..."
-if ! python -c "import black, isort, flake8, mypy, bandit, radon" >/dev/null 2>&1; then
+if ! python -c "import ruff, mypy, bandit, radon" >/dev/null 2>&1; then
     error "Code quality dependencies not installed. Run: pip install -e .[dev]"
     exit 1
 fi
@@ -54,35 +54,21 @@ echo ""
 
 # 1. Format checking
 status "Checking code formatting..."
-if black --check --diff src tests examples/concepts >/dev/null 2>&1; then
-    success "Black formatting OK"
+if ruff format --check --diff src tests examples/concepts >/dev/null 2>&1; then
+    success "Ruff formatting OK"
 else
     error "Code needs formatting. Run: make format"
-    black --check --diff src tests examples/concepts || true
-fi
-
-if isort --check-only --diff src tests examples/concepts >/dev/null 2>&1; then
-    success "Import sorting OK"
-else
-    error "Imports need sorting. Run: make format"
-    isort --check-only --diff src tests examples/concepts || true
+    ruff format --check --diff src tests examples/concepts || true
 fi
 
 echo ""
 
 # 2. Linting
 status "Running linters..."
-if flake8 src tests examples/concepts >/dev/null 2>&1; then
-    success "Flake8 linting OK"
-else
-    error "Flake8 issues found"
-    flake8 src tests examples/concepts || true
-fi
-
 if ruff check src tests examples/concepts >/dev/null 2>&1; then
     success "Ruff linting OK"
 else
-    warning "Ruff issues found (may be auto-fixable)"
+    warning "Ruff issues found (may be auto-fixable with: ruff check --fix)"
     ruff check src tests examples/concepts || true
 fi
 

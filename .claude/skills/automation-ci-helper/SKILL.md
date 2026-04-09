@@ -33,8 +33,8 @@ lint  →  etl  →  sonarcloud
 Runs on every **push** to `main`/`master` that touches `src/**`, `tests/**`, `src/sql/**`, `requirements.txt`, `pyproject.toml`, `sonar-project.properties`, or `.github/workflows/ci-postgres.yml`. **Pull requests** to those branches trigger `lint` only when `src/**`, `tests/**`, `requirements.txt`, or `pyproject.toml` are changed (`src/sql/**` and other config files do **not** trigger CI on PRs).
 
 Steps:
-1. `ruff format --check` + `ruff check` – formatting and linting (replaces black/isort/flake8)
-2. `pylint src` – deeper static analysis (non-blocking)
+1. `ruff format --check` – formatting check
+2. `ruff check` + `pylint` – linting (ruff is non-blocking on auto-fixable issues; pylint is non-blocking)
 3. `mypy src` – static type checking
 4. `bandit -r src` – security scan
 5. `radon cc` + `radon mi` – cyclomatic complexity and maintainability index

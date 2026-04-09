@@ -43,12 +43,12 @@ jobs:
           dev-deps: "true"
 
       - name: Format check (ruff)
-        run: |
-          ruff format --check --diff src tests
-          ruff check src tests
+        run: ruff format --check --diff src tests
 
-      - name: Lint (pylint)
-        run: pylint src || true   # treat warnings as non-blocking
+      - name: Lint (ruff + pylint)
+        run: |
+          ruff check src tests
+          pylint src || true   # treat warnings as non-blocking
 
       - name: Type check (mypy)
         run: mypy src
