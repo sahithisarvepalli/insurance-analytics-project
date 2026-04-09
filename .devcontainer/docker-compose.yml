@@ -1,4 +1,5 @@
-version: '3.8'
+name: insurance-analytics
+
 services:
   app:
     build:
@@ -6,7 +7,6 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ../..:/workspaces:cached
-    working_dir: /workspaces/${localWorkspaceFolderBasename}
     command: sleep infinity
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/insurdb
@@ -30,7 +30,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d insurdb"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - insurance-network
 

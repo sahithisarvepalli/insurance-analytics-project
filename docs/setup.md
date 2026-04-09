@@ -36,6 +36,16 @@ Step 4 → You're in! Run:  make help
 - ✅ Schema created and seeded
 - ✅ Jupyter kernel + VS Code extensions
 
+> **💡 WSL2 + Docker Desktop users:** For the most reliable rebuild experience, store the
+> repository inside the WSL2 filesystem (e.g. `~/projects/insurance-analytics-project`) rather
+> than on the Windows drive (`/mnt/c/...`). Bind-mounting Windows paths through Docker Desktop
+> can cause path-resolution conflicts that lead to `Exit code 1` on container rebuild. Once the
+> repo is on the WSL2 filesystem, rebuilds work consistently even when Docker Desktop is running
+> in the background (which is required for tools like Sonar MCP).
+>
+> **If DB init fails on first build:** The container will still open successfully. Run
+> `make setup` once inside the container to initialize the database and load sample data.
+
 ---
 
 ## 🅱️ Option B — Local Setup
@@ -105,6 +115,29 @@ pytest tests/ -v -m integration    # integration tests (requires live DB)
 ---
 
 ## 🔧 Troubleshooting
+
+<details>
+<summary>❌ Dev container rebuild fails with Exit code 1 (Docker Desktop running)</summary>
+
+This usually happens when the repository lives on the Windows filesystem (`/mnt/c/...`) and
+Docker Desktop's WSL integration resolves bind-mount paths differently from the devcontainer CLI.
+
+**Fix:** Move the repo into the WSL2 filesystem:
+```bash
+# From a WSL terminal
+cp -r /mnt/c/Users/<you>/myGit/insurance-analytics-project ~/projects/
+code ~/projects/insurance-analytics-project
+```
+
+Then rebuild the container from the WSL-native path.  Docker Desktop can remain running — it is
+needed for Sonar MCP and Airflow.
+
+If you must keep the repo on `/mnt/c/`, ensure **Docker Desktop → Settings → Resources → WSL
+Integration** has your Ubuntu distro enabled and try a clean rebuild:
+1. `Dev Containers: Clean Up Dev Containers` (VS Code command palette)
+2. `Dev Containers: Rebuild and Reopen in Container`
+
+</details>
 
 <details>
 <summary>❌ DB connection refused</summary>
