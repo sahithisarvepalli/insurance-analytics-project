@@ -12,9 +12,18 @@ echo "=================================================="
 echo "🚀 Insurance Analytics - Dev Container Setup"
 echo "=================================================="
 
-# Step 1: Clean up .gitconfig if it's a directory
+# Step 1: Ensure .gitconfig is a regular file, not a directory.
+# VS Code Dev Containers copies the host ~/.gitconfig into the container; if
+# the host path was accidentally created as a directory this step prevents Git
+# from failing with "Is a directory" / "unexpected end of parent stream".
 echo "🔧 Cleaning up git configuration..."
-rm -rf /home/vscode/.gitconfig
+for _gcfg in "${HOME:-/root}/.gitconfig" /home/vscode/.gitconfig; do
+    if [ -d "$_gcfg" ]; then
+        rm -rf "$_gcfg"
+        touch "$_gcfg"
+    fi
+done
+unset _gcfg
 git config --global --add safe.directory /workspaces/insurance-analytics-project || true
 
 # Step 2: Install Python dependencies
