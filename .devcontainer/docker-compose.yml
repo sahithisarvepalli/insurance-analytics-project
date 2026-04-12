@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     user: vscode
-    command: tail -f /dev/null
+    command: sleep infinity
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/insurdb
