@@ -40,4 +40,4 @@ volumes:
 
 networks:
   insurance-network:
-    name: insurance-network
+    driver: bridge
