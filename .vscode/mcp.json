@@ -14,10 +14,7 @@
                 "SONARQUBE_ORG",
                 "-e",
                 "SONARQUBE_PROJECT_KEY",
-                "node:20-alpine",
-                "npx",
-                "-y",
-                "sonarqube-mcp-server@1.10.21"
+                "mcp/sonarqube:1.10.21"
             ],
             "env": {
                 "SONARQUBE_TOKEN": "${input:sonarqubeToken}",
