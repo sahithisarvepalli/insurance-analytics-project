@@ -4,13 +4,17 @@
     "service": "app",
     "workspaceFolder": "/workspaces/insurance-analytics-project",
     "shutdownAction": "stopCompose",
-    "initializeCommand": ["bash", ".devcontainer/pre-init.sh"],
+    "initializeCommand": [
+        "bash",
+        "-lc",
+        "if [ -f .devcontainer/pre-init.sh ]; then bash .devcontainer/pre-init.sh; fi"
+    ],
     "remoteEnv": {
         "DATABASE_URL": "postgresql://postgres:postgres@db:5432/insurdb",
         "PYTHONPATH": "/workspaces/insurance-analytics-project",
         "JUPYTER_ENABLE_LAB": "yes"
     },
-    "postCreateCommand": "bash .devcontainer/setup.sh",
+    "postCreateCommand": "bash -eux .devcontainer/setup.sh",
     "forwardPorts": [5432, 8080, 8888, 8889],
     "portsAttributes": {
         "5432": {

@@ -11,3 +11,9 @@ if [ -d "$gcfg" ]; then
     rm -rf "$gcfg"
     touch "$gcfg"
 fi
+
+# Ensure shared network exists after aggressive Docker cleanup.
+if command -v docker >/dev/null 2>&1; then
+    docker network inspect insurance-network >/dev/null 2>&1 || \
+        docker network create insurance-network >/dev/null
+fi
