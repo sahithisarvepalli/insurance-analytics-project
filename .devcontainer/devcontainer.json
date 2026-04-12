@@ -2,8 +2,12 @@
     "name": "Insurance Analytics - Production",
     "dockerComposeFile": "docker-compose.yml",
     "service": "app",
+    "containerUser": "vscode",
+    "remoteUser": "vscode",
     "workspaceFolder": "/workspaces/insurance-analytics-project",
+    "workspaceMount": "source=insurance-analytics-project-fixcontainer,target=/workspaces/insurance-analytics-project,type=volume",
     "shutdownAction": "stopCompose",
+    "userEnvProbe": "none",
     "initializeCommand": [
         "bash",
         "-lc",
@@ -12,7 +16,9 @@
     "remoteEnv": {
         "DATABASE_URL": "postgresql://postgres:postgres@db:5432/insurdb",
         "PYTHONPATH": "/workspaces/insurance-analytics-project",
-        "JUPYTER_ENABLE_LAB": "yes"
+        "JUPYTER_ENABLE_LAB": "yes",
+        "SSH_AUTH_SOCK": "",
+        "GPG_AGENT_INFO": ""
     },
     "postCreateCommand": "bash .devcontainer/setup.sh",
     "forwardPorts": [5432, 8080, 8888, 8889],
@@ -97,6 +103,7 @@
                     }
                 },
                 "dev.containers.mountWaylandSocket": false,
+                "remote.containers.mountWaylandSocket": false,
                 "editor.rulers": [100],
                 "editor.tabSize": 4,
                 "editor.insertSpaces": true,

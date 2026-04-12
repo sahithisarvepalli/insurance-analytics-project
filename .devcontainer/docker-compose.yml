@@ -3,6 +3,7 @@ name: insurance-analytics
 services:
   app:
     image: mcr.microsoft.com/devcontainers/python:3.11
+    user: vscode
     command: sleep infinity
     restart: unless-stopped
     environment:
