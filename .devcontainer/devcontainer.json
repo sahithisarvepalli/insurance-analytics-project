@@ -14,7 +14,7 @@
     "initializeCommand": [
         "bash",
         "-lc",
-        "if [ -f .devcontainer/pre-init.sh ]; then bash .devcontainer/pre-init.sh; fi; if command -v docker >/dev/null 2>&1; then docker image inspect mcp/sonarqube:1.10.21 >/dev/null 2>&1 || docker build -t mcp/sonarqube:1.10.21 -f .devcontainer/sonarqube-mcp.Dockerfile .; fi"
+        "if [ -f .devcontainer/pre-init.sh ]; then bash .devcontainer/pre-init.sh; fi; if [ -f .devcontainer/build-sonar-mcp.sh ]; then bash .devcontainer/build-sonar-mcp.sh; fi"
     ],
     "remoteEnv": {
         "DATABASE_URL": "postgresql://postgres:postgres@db:5432/insurdb",
