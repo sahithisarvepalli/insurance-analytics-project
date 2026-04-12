@@ -5,7 +5,7 @@
     "containerUser": "vscode",
     "remoteUser": "vscode",
     "workspaceFolder": "/workspaces/insurance-analytics-project",
-    "workspaceMount": "source=insurance-analytics-project-fixcontainer,target=/workspaces/insurance-analytics-project,type=volume",
+    "workspaceMount": "source=insurance-analytics-project-workspace,target=/workspaces/insurance-analytics-project,type=volume",
     "shutdownAction": "stopCompose",
     "userEnvProbe": "none",
     "initializeCommand": [
