@@ -5,7 +5,6 @@
     "containerUser": "vscode",
     "remoteUser": "vscode",
     "workspaceFolder": "/workspaces/insurance-analytics-project",
-    "workspaceMount": "source=insurance-analytics-project-workspace,target=/workspaces/insurance-analytics-project,type=volume",
     "shutdownAction": "stopCompose",
     "userEnvProbe": "none",
     "initializeCommand": [
@@ -147,6 +146,8 @@
     },
     "features": {
         "ghcr.io/devcontainers/features/git:1": {},
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "moby": false
+        }
     }
 }

@@ -2,7 +2,7 @@ name: insurance-analytics
 
 services:
   app:
-    image: mcr.microsoft.com/devcontainers/python:3.11
+    image: mcr.microsoft.com/devcontainers/python:1-3.11-bookworm
     user: vscode
     command: sleep infinity
     restart: unless-stopped
