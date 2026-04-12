@@ -14,7 +14,7 @@
         "PYTHONPATH": "/workspaces/insurance-analytics-project",
         "JUPYTER_ENABLE_LAB": "yes"
     },
-    "postCreateCommand": "bash -eu .devcontainer/setup.sh",
+    "postCreateCommand": "bash .devcontainer/setup.sh",
     "forwardPorts": [5432, 8080, 8888, 8889],
     "portsAttributes": {
         "5432": {
