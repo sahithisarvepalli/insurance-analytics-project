@@ -12,6 +12,14 @@ echo "=================================================="
 echo "🚀 Insurance Analytics - Dev Container Setup"
 echo "=================================================="
 
+# Step 0: Ensure PostgreSQL client tools exist (psql, pg_isready).
+# The app container now uses a prebuilt Python image for faster startup.
+if ! command -v psql >/dev/null 2>&1 || ! command -v pg_isready >/dev/null 2>&1; then
+    echo "🧰 Installing PostgreSQL client tools..."
+    sudo apt-get update -y >/dev/null
+    sudo apt-get install -y postgresql-client >/dev/null
+fi
+
 # Step 1: Ensure .gitconfig is a regular file, not a directory.
 # VS Code Dev Containers copies the host ~/.gitconfig into the container; if
 # the host path was accidentally created as a directory this step prevents Git
