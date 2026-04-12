@@ -8,6 +8,9 @@
     "workspaceFolder": "/workspaces/insurance-analytics-project",
     "shutdownAction": "stopCompose",
     "userEnvProbe": "none",
+    "containerEnv": {
+        "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
+    },
     "initializeCommand": [
         "bash",
         "-lc",
