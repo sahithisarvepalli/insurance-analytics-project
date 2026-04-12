@@ -5,7 +5,7 @@
             "args": [
                 "run",
                 "--init",
-                "--pull=always",
+                "--pull=missing",
                 "-i",
                 "--rm",
                 "-e",
@@ -14,7 +14,7 @@
                 "SONARQUBE_ORG",
                 "-e",
                 "SONARQUBE_PROJECT_KEY",
-                "mcp/sonarqube"
+                "mcp/sonarqube:1.0.0"
             ],
             "env": {
                 "SONARQUBE_TOKEN": "${input:sonarqubeToken}",

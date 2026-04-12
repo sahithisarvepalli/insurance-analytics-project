@@ -30,7 +30,9 @@ docker system prune -a --volumes -f
 
 If using docker-compose.yml, this shuts down the stack and wipes the specific images and volumes associated with it.
 
+```sh
 docker compose down --rmi all --volumes --remove-orphans
+```
 
 ## 4. Individual Cleanup
 
