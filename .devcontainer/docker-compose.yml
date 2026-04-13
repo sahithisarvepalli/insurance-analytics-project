@@ -6,8 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     user: vscode
-    command: sleep infinity
-    restart: unless-stopped
+    command: ["sleep", "infinity"]
+    restart: "no"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/insurdb
     depends_on:
