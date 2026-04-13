@@ -3,9 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: sleep infinity
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: /bin/sh -c "while sleep 1000; do :; done"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/insurdb
+      DOCKER_HOST: unix:///var/run/docker.sock
     depends_on:
       db:
         condition: service_healthy

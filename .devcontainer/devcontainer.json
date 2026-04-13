@@ -5,15 +5,19 @@
     "remoteUser": "root",
     "workspaceFolder": "/workspaces/insurance-analytics-project",
     "shutdownAction": "stopCompose",
+    "containerUser": "root",
     "containerEnv": {
         "DATABASE_URL": "postgresql://postgres:postgres@db:5432/insurdb",
-        "PYTHONPATH": "/workspaces/insurance-analytics-project"
+        "PYTHONPATH": "/workspaces/insurance-analytics-project",
+        "DOCKER_HOST": "unix:///var/run/docker.sock",
+        "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
     },
     "remoteEnv": {
         "DATABASE_URL": "postgresql://postgres:postgres@db:5432/insurdb",
         "PYTHONPATH": "/workspaces/insurance-analytics-project"
     },
     "postCreateCommand": "bash .devcontainer/setup.sh",
+    "initializeCommand": "bash .devcontainer/build-sonar-mcp.sh",
     "forwardPorts": [5432, 8080, 8888, 8889],
     "portsAttributes": {
         "5432": {
@@ -109,13 +113,6 @@
         }
     },
     "features": {
-        "ghcr.io/devcontainers/features/git:1": {},
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-            "version": "latest",
-            "moby": false,
-            "dockerDashComposeVersion": "none",
-            "installDockerBuildx": false,
-            "installDockerComposeSwitch": false
-        }
+        "ghcr.io/devcontainers/features/git:1": {}
     }
 }
