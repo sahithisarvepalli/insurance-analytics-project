@@ -4,7 +4,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 USER root
 
-RUN getent passwd vscode >/dev/null || (echo "Error: vscode user not found" && exit 1)
+RUN getent passwd vscode >/dev/null || { echo "Error: vscode user not found"; exit 1; }
 
 RUN rm -f /etc/apt/sources.list.d/yarn.list
 
