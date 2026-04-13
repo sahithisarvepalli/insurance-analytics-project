@@ -3,13 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    entrypoint: []
     command: ["sleep", "infinity"]
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker-host.sock
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/insurdb
-      DOCKER_HOST: unix:///var/run/docker.sock
+      DOCKER_HOST: unix:///var/run/docker-host.sock
     depends_on:
       db:
         condition: service_healthy
