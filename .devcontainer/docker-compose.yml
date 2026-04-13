@@ -1,21 +1,14 @@
-name: insurance-analytics
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    user: vscode
-    command: ["sleep", "infinity"]
-    restart: "no"
-    mem_limit: 4g
+    command: sleep infinity
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/insurdb
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - insurance-network
 
   db:
     image: postgres:15
@@ -32,13 +25,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-    networks:
-      - insurance-network
 
 volumes:
   postgres-data:
-    name: insurance-analytics-postgres-data
-
-networks:
-  insurance-network:
-    driver: bridge
