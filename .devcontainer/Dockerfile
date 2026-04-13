@@ -1,3 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/python:3.11
+FROM mcr.microsoft.com/devcontainers/python:1-3.11-bookworm
 
-RUN apt-get update && apt-get install -y postgresql-client
+# Remove stale Yarn apt source to prevent GPG errors during feature install
+RUN rm -f /etc/apt/sources.list.d/yarn.list

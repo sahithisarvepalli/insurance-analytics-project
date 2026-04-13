@@ -1,16 +1,25 @@
 {
     "servers": {
         "sonarqube": {
-            "type": "stdio",
-            "command": "npx",
+            "command": "docker",
             "args": [
-                "-y",
-                "@sonarqube/mcp-server"
+                "run",
+                "--init",
+                "--pull=missing",
+                "-i",
+                "--rm",
+                "-e",
+                "SONARQUBE_TOKEN",
+                "-e",
+                "SONARQUBE_ORG",
+                "-e",
+                "SONARQUBE_PROJECT_KEY",
+                "mcp/sonarqube:1.10.21"
             ],
             "env": {
-                "SONARQUBE_URL": "https://sonarcloud.io",
                 "SONARQUBE_TOKEN": "${input:sonarqubeToken}",
-                "SONARQUBE_ORGANIZATION": "sahithisarvepalli"
+                "SONARQUBE_ORG": "sahithisarvepalli",
+                "SONARQUBE_PROJECT_KEY": "sahithisarvepalli_insurance-analytics-project"
             }
         }
     },

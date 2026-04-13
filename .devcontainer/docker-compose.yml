@@ -1,29 +1,25 @@
-name: insurance-analytics
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    command: ["sleep", "infinity"]
     volumes:
-      - workspace-data:/workspaces:cached
-    command: sleep infinity
+      - /var/run/docker.sock:/var/run/docker-host.sock
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/insurdb
+      DOCKER_HOST: unix:///var/run/docker-host.sock
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - insurance-network
 
   db:
     image: postgres:15
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: insurdb
-    ports:
-      - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -32,12 +28,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-    networks:
-      - insurance-network
 
 volumes:
-  workspace-data:
   postgres-data:
-
-networks:
-  insurance-network:

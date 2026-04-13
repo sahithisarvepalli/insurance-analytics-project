@@ -12,6 +12,14 @@ echo "=================================================="
 echo "🚀 Insurance Analytics - Dev Container Setup"
 echo "=================================================="
 
+# Step 0: Ensure PostgreSQL client tools exist (psql, pg_isready).
+# The app container now uses a prebuilt Python image for faster startup.
+if ! command -v psql >/dev/null 2>&1 || ! command -v pg_isready >/dev/null 2>&1; then
+    echo "🧰 Installing PostgreSQL client tools..."
+    sudo apt-get update -y >/dev/null
+    sudo apt-get install -y postgresql-client >/dev/null
+fi
+
 # Step 1: Ensure .gitconfig is a regular file, not a directory.
 # VS Code Dev Containers copies the host ~/.gitconfig into the container; if
 # the host path was accidentally created as a directory this step prevents Git
@@ -40,15 +48,14 @@ CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${A
 pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "${CONSTRAINT_URL}" || \
     echo "⚠️  Airflow install failed — DAG linting may show import errors"
 
-# Airflow's constraint file downgrades SQLAlchemy to 1.x, which breaks pandas 2.x.
-# Re-pin SQLAlchemy to the version required by requirements.txt.
-echo "🔧 Re-pinning SQLAlchemy>=2.0 (overrides Airflow constraint)..."
-pip install "SQLAlchemy>=2.0.0,<3.0.0" --upgrade --quiet || \
+# Keep SQLAlchemy in Airflow-compatible range.
+echo "🔧 Re-pinning SQLAlchemy<2.0 for Airflow compatibility..."
+pip install "SQLAlchemy>=1.4.36,<2.0" --upgrade --quiet || \
     echo "⚠️  SQLAlchemy re-pin failed"
 
 # Step 3: Set up pre-commit hooks
 echo "🔗 Setting up pre-commit hooks..."
-pre-commit install --install-hooks || echo "⚠️  Pre-commit setup failed, continuing..."
+python -m pre_commit install --install-hooks || echo "⚠️  Pre-commit setup failed, continuing..."
 
 # Step 4: Run database initialization
 echo ""
