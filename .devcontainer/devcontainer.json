@@ -2,8 +2,8 @@
     "name": "Insurance Analytics - Production",
     "dockerComposeFile": "docker-compose.yml",
     "service": "app",
-    "containerUser": "vscode",
-    "remoteUser": "vscode",
+    "containerUser": "root",
+    "remoteUser": "root",
     "workspaceFolder": "/workspaces/insurance-analytics-project",
     "shutdownAction": "stopCompose",
     "userEnvProbe": "none",
@@ -151,7 +151,11 @@
     "features": {
         "ghcr.io/devcontainers/features/git:1": {},
         "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-            "moby": false
+            "version": "latest",
+            "moby": false,
+            "dockerDashComposeVersion": "none",
+            "installDockerBuildx": false,
+            "installDockerComposeSwitch": false
         }
     }
 }
